@@ -7,8 +7,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AIInsightCard from "../components/AIInsightCard";
-import LeetCodeHeatmap from "../components/LeetCodeHeatmap";
-import DailyActivityGraph from "../components/DailyActivityGraph";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ 
@@ -204,63 +202,44 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Analysis Row: Daily Activity Graph & AI Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-panel p-6 shadow-sm">
-          <DailyActivityGraph 
-            dailyActivityMap={stats.dailyActivityMap || {}}
-            streak={stats.codingStreak || stats.streak || 0}
-            solvedCount={stats.solvedCodingCount || 0}
-            totalXP={stats.xp || 0}
-          />
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <AIInsightCard 
-            accuracy={stats.accuracy} 
-            streak={stats.codingStreak || stats.streak} 
-            level={stats.level} 
-          />
-          
-          {/* DSA Roadmap Card */}
-          <div className="glass-panel p-6 flex-1 flex flex-col justify-between shadow-sm space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase text-[var(--accent-primary)]">25-Set Curriculum</span>
-                <span className="text-xs font-mono font-bold text-emerald-500">{dsaCompletedCount} / 25 Sets</span>
-              </div>
-              <h3 className="text-lg font-black pro-text-main">DSA Mastery Roadmap</h3>
-              <p className="pro-text-muted text-xs font-medium leading-relaxed">
-                Complete all 25 mastery sets with interactive quizzes and direct workspace exercises.
-              </p>
-              
-              {/* Progress Bar */}
-              <div className="w-full bg-[var(--bg-secondary)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]">
-                <div 
-                  className="bg-[var(--accent-primary)] h-full rounded-full transition-all duration-700"
-                  style={{ width: `${(dsaCompletedCount / 25) * 100}%` }}
-                />
-              </div>
+      {/* Main Analysis Row: AI Insights & DSA Roadmap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AIInsightCard 
+          accuracy={stats.accuracy} 
+          streak={stats.quizStreak || stats.streak || 0} 
+          level={stats.level} 
+        />
+        
+        {/* DSA Roadmap Card */}
+        <div className="glass-panel p-6 flex flex-col justify-between shadow-sm space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-black uppercase text-[var(--accent-primary)]">25-Set Curriculum</span>
+              <span className="text-xs font-mono font-bold text-emerald-500">{dsaCompletedCount} / 25 Sets</span>
             </div>
-
-            <Link 
-              to="/dsa-roadmap" 
-              className="btn-primary w-full !py-3 text-xs font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"
-            >
-              <Play size={14} fill="currentColor" />
-              <span>Resume Roadmap</span>
-            </Link>
+            <h3 className="text-lg font-black pro-text-main">DSA Mastery Roadmap</h3>
+            <p className="pro-text-muted text-xs font-medium leading-relaxed">
+              Complete all 25 mastery sets with interactive quizzes and direct workspace exercises.
+            </p>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-[var(--bg-secondary)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]">
+              <div 
+                className="bg-[var(--accent-primary)] h-full rounded-full transition-all duration-700"
+                style={{ width: `${(dsaCompletedCount / 25) * 100}%` }}
+              />
+            </div>
           </div>
+
+          <Link 
+            to="/dsa-roadmap" 
+            className="btn-primary w-full !py-3 text-xs font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"
+          >
+            <Play size={14} fill="currentColor" />
+            <span>Resume Roadmap</span>
+          </Link>
         </div>
       </div>
-
-      {/* Authentic LeetCode-Style 1-Year Contribution Calendar Heatmap */}
-      <LeetCodeHeatmap 
-        dailyActivityMap={stats.dailyActivityMap || {}}
-        streak={stats.codingStreak || stats.streak || 0}
-        totalSubmissions={stats.totalRealSubmissions || stats.solvedCodingCount || 0}
-        activeDays={stats.totalActiveDays || 0}
-      />
 
       {/* Badges & Verifiable Certificates Gallery */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

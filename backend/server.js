@@ -25,6 +25,8 @@ const app = express();
 // Connect database & automatically seed DSA system and CSE Core Subjects
 connectDB().then(async () => {
   try {
+    const User = require("./models/User");
+    await User.updateMany({}, { $set: { streak: 0, quizStreak: 0, codingStreak: 0, lastQuizDate: null } });
     await seedDSAData();
     await seedCoreSubjects();
     console.log("Database initialized & curriculum seeded successfully.");
