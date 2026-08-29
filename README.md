@@ -1,47 +1,85 @@
 # 🧠 Neural Decay Guard
 
-A full-stack, AI-powered Cognitive Training & LeetCode-style platform designed to combat neural decay through consistent, gamified algorithmic practice. Built using the **MERN** stack and integrated with **Google Gemini AI**.
+[![Live App](https://img.shields.io/badge/Live_Demo-Render_Cloud-00C7B7?style=for-the-badge&logo=render&logoColor=white)](https://neural-decay-guard.onrender.com)
+[![React](https://img.shields.io/badge/Frontend-React_18_%2B_Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://neural-decay-guard.onrender.com)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js_%2B_Express-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://neural-decay-guard.onrender.com)
+[![MongoDB](https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://neural-decay-guard.onrender.com)
 
-## 🚀 How to Run This Project Locally (Localhost)
+A full-stack, AI-powered Cognitive Training & Algorithmic Spaced-Repetition Platform designed to combat neural decay through consistent, gamified practice across Data Structures, Algorithms, and Computer Science Core Subjects.
 
-If you meant "how to run this project locally", here are the exact terminal commands required to run the LeetCode-style platform on your machine.
+---
+
+## 🌐 Live Production Deployment
+
+👉 **Live Application Link**: **[https://neural-decay-guard.onrender.com](https://neural-decay-guard.onrender.com)**
+
+* **Dashboard & Real-Time Analytics**: [https://neural-decay-guard.onrender.com/dashboard](https://neural-decay-guard.onrender.com/dashboard)
+* **Daily Retention Quiz (1 submission/day)**: [https://neural-decay-guard.onrender.com/daily-quiz](https://neural-decay-guard.onrender.com/daily-quiz)
+* **Monthly LeetCode Calendar Challenge**: [https://neural-decay-guard.onrender.com/daily-challenge](https://neural-decay-guard.onrender.com/daily-challenge)
+* **DSA Mastery Roadmap (25 Sets)**: [https://neural-decay-guard.onrender.com/dsa-roadmap](https://neural-decay-guard.onrender.com/dsa-roadmap)
+* **CSE Core Subjects Academy (7 Courses)**: [https://neural-decay-guard.onrender.com/core-subjects](https://neural-decay-guard.onrender.com/core-subjects)
+
+---
+
+## ✨ Key Features
+
+1. **🧠 Daily Spaced-Repetition Quiz**:
+   - Strictly restricted to **1 submission per calendar day** for scientifically spaced recall.
+   - Real-time midnight countdown lock and streak protection.
+   - Primary driver for maintaining your consecutive-day **Retention Streak**.
+
+2. **📅 30-Day LeetCode Challenge Calendar**:
+   - Curated monthly calendar with direct links to top LeetCode problems (Easy, Medium, Hard).
+   - Interactive verification checkmarks to track your daily problem-solving milestones.
+   - Unlocks the prestigious **Monthly Champion Badge** upon 100% completion.
+
+3. **📊 Unified Analytics Graph & 1-Year Contribution Heatmap**:
+   - 4-in-1 metric filters: *All Activities*, *Retention Quizzes*, *LeetCode Checks*, *Course & DSA Sets*, and *XP Velocity*.
+   - GitHub/LeetCode-style 365-day rolling contribution heatmap grid.
+   - Full timezone synchronization between browser local time and server timestamps.
+
+4. **🛣️ DSA Mastery Roadmap**:
+   - 25 structured curriculum sets covering Arrays, Linked Lists, Trees, Graphs, DP, Heaps, and Tries.
+   - Integrated MCQs and verified test suite workspace practice.
+
+5. **🎓 CSE Core Subjects Academy**:
+   - 7 university-grade courses (DBMS, Operating Systems, Computer Networks, System Design, OOPs, Computer Organization, Software Engineering).
+   - 25 unique sets per course with verifiable mastery completion certificates.
+
+---
+
+## 🚀 How to Run Locally
 
 ### Prerequisites
 - **Node.js** (v18+)
-- **MongoDB** (Local instance or Atlas URI)
-- Credentials for Google OAuth and Gemini API in your `.env` files.
+- **MongoDB** (Local instance or MongoDB Atlas connection string)
+- Environment variables configured in `.env` (or backend config)
 
-### Step 1: Start the Backend (API & Database)
-Open a terminal, navigate to the `backend` folder, and start the engine:
+### 1. Start the Backend API Server
 ```bash
 cd backend
 npm install
 npm start
 ```
-*The backend will boot up on `http://localhost:5000` and securely connect to MongoDB.*
+*The backend API boots up at `http://localhost:5000` connected to MongoDB.*
 
-### Step 2: Start the Frontend (User Interface)
-Open a **new, separate terminal**, navigate to the `frontend` folder, and launch Vite:
+### 2. Start the Frontend Application
+In a separate terminal window:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*The frontend will launch at `http://localhost:5173`.*
+*The frontend client will launch at `http://localhost:5173`.*
 
-### Step 3: Access the Application
-Open your web browser (Chrome, Firefox, Safari) and go directly to:
-👉 **http://localhost:5173**
+### 3. Open in Browser
+Visit **`http://localhost:5173`** to access the application locally.
 
 ---
 
-## 🛠 Features Included
-- **1,600+ Questions**: Programmatically seeded database covering DBMS, DSA, Java, C, Python, CN, COA, and OS.
-- **Activity Heatmap**: A GitHub-style live streak tracking matrix.
-- **Gamification**: XP, Levels, and Badges calculated asynchronously.
-- **"Daily Quiz" Engine**: Mixes questions across all 8 CS subjects dynamically using MongoDB `$sample`.
-- **Socratic AI Tutor**: Real-time Gemini-powered assistance to avoid plain answer-dumping.
+## 🛠️ Tech Stack
 
-## 📝 If You Meant "How to run code dynamically like LeetCode?"
-Right now, Neural Decay Guard is specifically architected as an **MCQ-based conceptual tracking ecosystem**. 
-To physically compile and run Java/Python code like LeetCode does (creating an actual Remote Code Execution engine), we would need to integrate a sandbox API like **Judge0** into the `Workspace.jsx`. Let me know if that is what you meant!
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Axios, React Router DOM
+- **Backend**: Node.js, Express.js, Mongoose, JWT Authentication, CORS
+- **Database**: MongoDB Atlas
+- **Hosting & CI/CD**: Render Cloud Platform
