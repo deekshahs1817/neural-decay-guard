@@ -99,13 +99,37 @@ const submitQuiz = async (req, res) => {
 
     await attempt.save();
 
-    // Update streak and record daily retention completion
+    // Strict Daily Retention Quiz Streak Calculation
     const localNow = new Date();
     const today = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+    
+    // Calculate difference in calendar days from last quiz
+    let newStreak = user.quizStreak || user.streak || 0;
+    if (user.lastQuizDate) {
+      const lastDate = new Date(user.lastQuizDate + "T00:00:00");
+      const curDate = new Date(today + "T00:00:00");
+      const diffTime = curDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-    user.streak = (user.streak || 0) + 1;
-    user.quizStreak = (user.quizStreak || 0) + 1;
-    user.codingStreak = user.streak;
+      if (diffDays === 1) {
+        // Solved on consecutive day
+        newStreak += 1;
+      } else if (diffDays > 1) {
+        // Missed a day -> reset to 1
+        newStreak = 1;
+      } else if (diffDays === 0) {
+        // Already solved today -> maintain current streak or initialize to 1
+        newStreak = Math.max(1, newStreak);
+      }
+    } else {
+      // First time solving retention quiz
+      newStreak = Math.max(1, newStreak + 1);
+    }
+
+    user.streak = newStreak;
+    user.quizStreak = newStreak;
+    user.codingStreak = newStreak;
+    user.lastQuizDate = today;
 
     const xpEarned = (score * 10) + 20;
     user.xp = (user.xp || 0) + xpEarned;
