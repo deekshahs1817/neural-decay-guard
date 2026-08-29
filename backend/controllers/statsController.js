@@ -21,42 +21,50 @@ exports.getUserStats = async (req, res) => {
     const correctAttempts = attempts.filter(a => a.status === "Accepted").length + quizAttempts.filter(q => q.score >= 3).length;
     const accuracy = totalQuiz > 0 ? Math.round((correctAttempts / totalQuiz) * 100) : 100;
 
+    // Parse client timezone offset (in minutes) and client local date string
+    const tzOffsetMinutes = typeof req.query.tzOffset !== "undefined" ? parseInt(req.query.tzOffset, 10) : -330; // Default to IST (-330) if unset
+    const clientTodayStr = req.query.clientDate || new Date(Date.now() - (tzOffsetMinutes * 60000)).toISOString().split("T")[0];
+
     // LeetCode Solved Count strictly from Calendar Checks
     const solvedCodingCount = user.completedChallenges?.length || 0;
 
     // Build authentic Date -> Activity Count dictionary across all platform activities
     const dailyActivityMap = {};
     let totalRealSubmissions = 0;
-    const todayStr = new Date().toISOString().split("T")[0];
+
+    const toClientDateStr = (dateObj) => {
+      if (!dateObj) return clientTodayStr;
+      if (typeof dateObj === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateObj)) {
+        // If string matches clientTodayStr or is an explicit date string
+        return dateObj;
+      }
+      const d = new Date(dateObj);
+      if (isNaN(d.getTime())) return clientTodayStr;
+      const adjusted = new Date(d.getTime() - (tzOffsetMinutes * 60000));
+      return adjusted.toISOString().split("T")[0];
+    };
 
     const addActivity = (dateObj, weight = 1) => {
       if (!dateObj) return;
-      let dateStr;
-      if (typeof dateObj === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateObj)) {
-        dateStr = dateObj;
-      } else {
-        const d = new Date(dateObj);
-        if (isNaN(d.getTime())) return;
-        dateStr = d.toISOString().split("T")[0];
-      }
+      const dateStr = toClientDateStr(dateObj);
       dailyActivityMap[dateStr] = (dailyActivityMap[dateStr] || 0) + weight;
       totalRealSubmissions += weight;
     };
 
     // 1. Ingest Quiz Submissions (Submission model)
     attempts.forEach(sub => {
-      addActivity(sub.createdAt || todayStr, 1);
+      addActivity(sub.createdAt || clientTodayStr, 1);
     });
 
     // 2. Ingest Daily Retention Quiz Attempts (QuizAttempt model)
     quizAttempts.forEach(qa => {
-      addActivity(qa.createdAt || todayStr, 1);
+      addActivity(qa.createdAt || clientTodayStr, 1);
     });
 
     // 3. Ingest LeetCode Calendar Checks (user.completedChallenges)
     if (user.completedChallenges && Array.isArray(user.completedChallenges)) {
       user.completedChallenges.forEach(cc => {
-        addActivity(cc.completedAt || cc.challengeDate || todayStr, 1);
+        addActivity(cc.completedAt || cc.challengeDate || clientTodayStr, 1);
       });
     }
 
@@ -64,14 +72,14 @@ exports.getUserStats = async (req, res) => {
     if (user.courseProgress) {
       for (const [_, pData] of Object.entries(user.courseProgress)) {
         if (pData && pData.completedSets && pData.completedSets.length > 0) {
-          addActivity(pData.lastUpdated || user.updatedAt || todayStr, pData.completedSets.length);
+          addActivity(pData.lastUpdated || user.updatedAt || clientTodayStr, pData.completedSets.length);
         }
       }
     }
 
     // 5. Ingest DSA Learning Path Sets Progress
     if (user.learningPathProgress && user.learningPathProgress.completedSets && user.learningPathProgress.completedSets.length > 0) {
-      addActivity(user.learningPathProgress.lastUpdated || user.updatedAt || todayStr, user.learningPathProgress.completedSets.length);
+      addActivity(user.learningPathProgress.lastUpdated || user.updatedAt || clientTodayStr, user.learningPathProgress.completedSets.length);
     }
 
     // 6. Ingest Direct User Daily Activity Map if present
@@ -84,10 +92,11 @@ exports.getUserStats = async (req, res) => {
       });
     }
 
-    // Always ensure today reflects active session if user has XP
-    if (!dailyActivityMap[todayStr] && (user.xp > 0 || user.streak > 0)) {
-      dailyActivityMap[todayStr] = 1;
-      totalRealSubmissions += 1;
+    // Always ensure clientTodayStr reflects active session if user has XP or activity
+    if (!dailyActivityMap[clientTodayStr] && (user.xp > 0 || user.streak > 0 || totalRealSubmissions > 0)) {
+      const fallbackActivity = Math.max(1, totalRealSubmissions || 1);
+      dailyActivityMap[clientTodayStr] = fallbackActivity;
+      totalRealSubmissions = Math.max(totalRealSubmissions, fallbackActivity);
     }
 
     // Calculate Active Days & Streak

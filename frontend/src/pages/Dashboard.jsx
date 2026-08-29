@@ -32,8 +32,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!userId) return;
+    const localNow = new Date();
+    const clientDate = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+    const tzOffset = localNow.getTimezoneOffset();
+
     Promise.all([
-      API.get(`/userStats/${userId}`),
+      API.get(`/userStats/${userId}`, { params: { clientDate, tzOffset } }),
       API.get(`/decay/${userId}`).catch(() => ({ data: null })),
       API.get(`/core-subjects`, { params: { userId } }).catch(() => ({ data: { courses: [] } })),
       API.get(`/learning-path/sets`, { params: { userId } }).catch(() => ({ data: { sets: [] } }))

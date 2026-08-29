@@ -101,7 +101,7 @@ const submitQuiz = async (req, res) => {
 
     // Strict Daily Retention Quiz Streak Calculation
     const localNow = new Date();
-    const today = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+    const today = req.body.clientDate || `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
     
     // Calculate difference in calendar days from last quiz
     let newStreak = user.quizStreak || user.streak || 0;

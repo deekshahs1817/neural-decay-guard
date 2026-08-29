@@ -36,7 +36,9 @@ export default function DailyQuiz() {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const res = await API.post('/submitQuiz', { userId, answers });
+      const localNow = new Date();
+      const clientDate = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+      const res = await API.post('/submitQuiz', { userId, answers, clientDate });
       setScore(res.data.score);
       setQuizResult(res.data);
     } catch (err) {
