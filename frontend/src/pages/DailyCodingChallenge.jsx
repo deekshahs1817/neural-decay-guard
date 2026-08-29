@@ -63,6 +63,30 @@ export default function DailyCodingChallenge() {
 
   const handleToggleDay = async (dateStr, problemId) => {
     if (!userId) return;
+
+    // Optimistic instant state update for immediate green tick
+    setChallengeData(prev => {
+      if (!prev) return prev;
+      const isToday = dateStr === currentDateStr;
+      const newMonthDays = (prev.monthDays || []).map(d => {
+        if (d.date === dateStr) {
+          return { ...d, isCompleted: !d.isCompleted };
+        }
+        return d;
+      });
+      const newCompletedCount = newMonthDays.filter(d => d.isCompleted).length;
+      return {
+        ...prev,
+        isCompleted: isToday ? !prev.isCompleted : prev.isCompleted,
+        monthDays: newMonthDays,
+        monthlyStats: prev.monthlyStats ? {
+          ...prev.monthlyStats,
+          completedCount: newCompletedCount,
+          percentage: Math.round((newCompletedCount / (prev.monthlyStats.totalDays || 30)) * 100)
+        } : prev.monthlyStats
+      };
+    });
+
     try {
       await API.post("/coding/toggle-calendar-day", {
         userId,
@@ -72,7 +96,14 @@ export default function DailyCodingChallenge() {
       fetchChallengeData();
     } catch (err) {
       console.error("Failed to toggle calendar day:", err);
+      fetchChallengeData();
     }
+  };
+
+  const openLeetCode = (title) => {
+    const slug = (title || "two-sum").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+    const url = `https://leetcode.com/problems/${slug}/`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   if (loading) {
@@ -92,7 +123,7 @@ export default function DailyCodingChallenge() {
   const currentDayOfWeek = clientDayNames[localDate.getDay()];
   const currentDateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
 
-  const leetcodeSlug = (problem?.title || "").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+  const leetcodeSlug = (problem?.title || "two-sum").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
   const leetcodeUrl = problem?.url || `https://leetcode.com/problems/${leetcodeSlug}/`;
 
   return (
@@ -133,6 +164,31 @@ export default function DailyCodingChallenge() {
         </div>
       </div>
 
+      {/* Daily Retention Quiz Link Banner */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-[var(--bg-card)] to-cyan-500/10 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
+            <Zap size={24} className="animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-base font-black pro-text-main uppercase tracking-tight flex items-center gap-2">
+              <span>Daily Retention Quiz Protocol</span>
+              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Powers Your Streak</span>
+            </h3>
+            <p className="text-xs pro-text-muted font-medium mt-0.5">
+              Take today's retention quiz to combat Ebbinghaus decay, reinforce knowledge, and maintain your <strong>{stats?.quizStreak || stats?.learningStreak || stats?.streak || 0}-day streak</strong>.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/daily-quiz"
+          className="btn-primary !px-6 !py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shrink-0 shadow-lg hover:scale-105 transition-transform"
+        >
+          <span>Take Retention Quiz</span>
+          <ArrowRight size={15} />
+        </Link>
+      </div>
+
       {/* Today's Challenge Card */}
       {challengeData && (
         <div className="glass-panel p-8 border-[var(--border-color)] space-y-6 shadow-sm">
@@ -160,23 +216,21 @@ export default function DailyCodingChallenge() {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Direct LeetCode Link */}
-              <a
-                href={leetcodeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => openLeetCode(problem?.title)}
                 className="btn-primary !px-6 !py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
               >
                 <span>Solve on LeetCode</span>
                 <ExternalLink size={15} />
-              </a>
+              </button>
 
               {/* Manual Tick / Solved Toggle */}
               <button
                 onClick={() => handleToggleDay(currentDateStr, problem?._id)}
                 className={`px-6 py-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 border transition-all ${
                   challengeData.isCompleted
-                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md"
-                    : "bg-[var(--bg-secondary)] border-[var(--border-color)] pro-text-main hover:border-emerald-500"
+                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md ring-2 ring-emerald-500/30"
+                    : "bg-[var(--bg-secondary)] border-[var(--border-color)] pro-text-main hover:border-emerald-500 hover:text-emerald-400"
                 }`}
               >
                 <CheckCircle2 size={16} className={challengeData.isCompleted ? "text-emerald-400" : "text-slate-400"} />
@@ -305,19 +359,20 @@ export default function DailyCodingChallenge() {
                   </div>
 
                   <div className="mt-1 flex items-center justify-between gap-1">
-                    <a
-                      href={dayLeetcodeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className={`text-[9px] font-mono font-bold block truncate hover:underline flex items-center gap-1 ${
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLeetCode(d.problemTitle);
+                      }}
+                      className={`text-[9px] font-mono font-bold block truncate hover:underline flex items-center gap-1 text-left w-full ${
                         d.isCompleted ? "text-emerald-400" : "pro-text-muted hover:text-[var(--accent-primary)]"
                       }`}
                       title={`Practice ${d.problemTitle || "Challenge"} on LeetCode`}
                     >
-                      <span>{d.problemTitle || "Challenge"}</span>
+                      <span className="truncate">{d.problemTitle || "Challenge"}</span>
                       <ExternalLink size={9} className="shrink-0" />
-                    </a>
+                    </button>
                   </div>
                 </div>
               );

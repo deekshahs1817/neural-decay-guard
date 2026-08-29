@@ -469,6 +469,24 @@ const toggleCalendarDay = async (req, res) => {
       isCompletedNow = true;
     }
 
+    // Synchronize DailyChallenge record if exists
+    try {
+      const dc = await DailyChallenge.findOne({ date: dateStr });
+      if (dc) {
+        if (isCompletedNow) {
+          if (!dc.completions.some(c => c.user?.toString() === userId.toString())) {
+            dc.completions.push({ user: userId, runtimeMs: 50, memoryMb: 14 });
+            await dc.save();
+          }
+        } else {
+          dc.completions = dc.completions.filter(c => c.user?.toString() !== userId.toString());
+          await dc.save();
+        }
+      }
+    } catch (dcErr) {
+      console.warn("Daily challenge sync warning:", dcErr);
+    }
+
     await user.save();
 
     res.json({
