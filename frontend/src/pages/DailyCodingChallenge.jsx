@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { 
   Flame, Trophy, Calendar as CalendarIcon, CheckCircle2, ArrowRight, Shield, 
-  Sparkles, Award, Clock, Users, Zap, Star, ChevronRight, X, Timer
+  Sparkles, Award, Clock, Users, Zap, Star, ChevronRight, X, Timer, ExternalLink, Check
 } from "lucide-react";
 
 export default function DailyCodingChallenge() {
@@ -61,6 +61,20 @@ export default function DailyCodingChallenge() {
     fetchChallengeData();
   }, []);
 
+  const handleToggleDay = async (dateStr, problemId) => {
+    if (!userId) return;
+    try {
+      await API.post("/coding/toggle-calendar-day", {
+        userId,
+        dateStr,
+        problemId: problemId || challengeData?.problem?._id
+      });
+      fetchChallengeData();
+    } catch (err) {
+      console.error("Failed to toggle calendar day:", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center gap-3">
@@ -77,6 +91,9 @@ export default function DailyCodingChallenge() {
   const clientDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const currentDayOfWeek = clientDayNames[localDate.getDay()];
   const currentDateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+
+  const leetcodeSlug = (problem?.title || "").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+  const leetcodeUrl = problem?.url || `https://leetcode.com/problems/${leetcodeSlug}/`;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-300 pb-16">
@@ -101,15 +118,15 @@ export default function DailyCodingChallenge() {
             </p>
           </div>
 
-          {/* Current Streak Badge */}
+          {/* Retention Streak Badge */}
           <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl flex items-center gap-4 shadow-sm">
             <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-500">
               <Flame size={32} />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase pro-text-muted tracking-widest block">Coding Streak</span>
+              <span className="text-[10px] font-black uppercase pro-text-muted tracking-widest block">Retention Streak</span>
               <p className="text-3xl font-black font-mono pro-text-main">
-                {stats?.codingStreak || stats?.streak || 0} <span className="text-sm font-normal pro-text-muted">Days</span>
+                {stats?.quizStreak || stats?.learningStreak || stats?.streak || 0} <span className="text-sm font-normal pro-text-muted">Days</span>
               </p>
             </div>
           </div>
@@ -141,20 +158,30 @@ export default function DailyCodingChallenge() {
               </h2>
             </div>
 
-            <div className="flex items-center gap-3">
-              {challengeData.isCompleted ? (
-                <div className="px-6 py-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-black text-sm flex items-center gap-2 shadow-sm">
-                  <CheckCircle2 size={18} /> Completed Today (+{challengeData.xpReward} XP)
-                </div>
-              ) : (
-                <Link
-                  to={`/coding/${problem?._id}?daily=true`}
-                  className="btn-primary !px-8 !py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl"
-                >
-                  <span>Solve Challenge (+{challengeData.xpReward} XP)</span>
-                  <ArrowRight size={16} />
-                </Link>
-              )}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Direct LeetCode Link */}
+              <a
+                href={leetcodeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary !px-6 !py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
+              >
+                <span>Solve on LeetCode</span>
+                <ExternalLink size={15} />
+              </a>
+
+              {/* Manual Tick / Solved Toggle */}
+              <button
+                onClick={() => handleToggleDay(currentDateStr, problem?._id)}
+                className={`px-6 py-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 border transition-all ${
+                  challengeData.isCompleted
+                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md"
+                    : "bg-[var(--bg-secondary)] border-[var(--border-color)] pro-text-main hover:border-emerald-500"
+                }`}
+              >
+                <CheckCircle2 size={16} className={challengeData.isCompleted ? "text-emerald-400" : "text-slate-400"} />
+                <span>{challengeData.isCompleted ? "Marked as Solved ✓" : "Mark as Solved"}</span>
+              </button>
             </div>
           </div>
 
@@ -162,7 +189,7 @@ export default function DailyCodingChallenge() {
             <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl">
               <span className="text-[10px] font-black uppercase pro-text-muted">Completion Rate</span>
               <p className="text-lg font-bold font-mono pro-text-main mt-1">
-                {challengeData.totalCompletions} Engineers Solved
+                {challengeData.totalCompletions || 1} Engineers Solved
               </p>
             </div>
             <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl">
@@ -193,7 +220,7 @@ export default function DailyCodingChallenge() {
                 {monthlyStats?.monthName} {monthlyStats?.year} Calendar
               </h3>
               <p className="text-xs pro-text-muted font-medium">
-                Complete each day's challenge to earn a checkmark. Complete all days for the <strong>Monthly Champion Badge</strong>!
+                Click any day to mark completion and earn checkmarks. Complete all days for the <strong>Monthly Champion Badge</strong>!
               </p>
             </div>
           </div>
@@ -238,16 +265,18 @@ export default function DailyCodingChallenge() {
                 ? new Date(monthDays[0].date + "T00:00:00").getDay() 
                 : new Date(localDate.getFullYear(), localDate.getMonth(), 1).getDay() 
             }).map((_, padIdx) => (
-              <div key={`pad-${padIdx}`} className="p-3 min-h-[75px] rounded-2xl border border-dashed border-slate-800/40 bg-slate-950/20 pointer-events-none" />
+              <div key={`pad-${padIdx}`} className="p-3 min-h-[85px] rounded-2xl border border-dashed border-slate-800/40 bg-slate-950/20 pointer-events-none" />
             ))}
 
             {monthDays?.map((d) => {
               const isToday = d.date === currentDateStr;
+              const dayLeetcodeSlug = (d.problemTitle || "two-sum").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+              const dayLeetcodeUrl = `https://leetcode.com/problems/${dayLeetcodeSlug}/`;
+
               return (
                 <div
                   key={d.date}
-                  onClick={() => d.problemId && navigate(`/coding/${d.problemId}?daily=true`)}
-                  className={`relative p-3 min-h-[75px] rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
+                  className={`relative p-3 min-h-[85px] rounded-2xl border transition-all flex flex-col justify-between group ${
                     d.isCompleted
                       ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
                       : isToday
@@ -257,24 +286,38 @@ export default function DailyCodingChallenge() {
                 >
                   <div className="flex justify-between items-center">
                     <span className="font-mono font-bold text-xs">{d.dayNumber}</span>
-                    {d.isCompleted && (
-                      <span className="p-0.5 rounded-full bg-emerald-500 text-slate-950">
-                        <CheckCircle2 size={13} className="stroke-[3]" />
-                      </span>
-                    )}
-                    {isToday && !d.isCompleted && (
-                      <span className="px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-amber-500 text-slate-950">
-                        Today
-                      </span>
-                    )}
+                    
+                    {/* Manual Tick Button on Calendar Day */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleDay(d.date, d.problemId);
+                      }}
+                      className={`p-1 rounded-full border transition-all ${
+                        d.isCompleted
+                          ? "bg-emerald-500 text-slate-950 border-emerald-400"
+                          : "bg-slate-900/60 border-slate-700 text-slate-400 hover:border-emerald-400 hover:text-emerald-400"
+                      }`}
+                      title={d.isCompleted ? "Unmark as completed" : "Mark as completed"}
+                    >
+                      <Check size={11} className={d.isCompleted ? "stroke-[3]" : ""} />
+                    </button>
                   </div>
 
-                  <div className="mt-1">
-                    <span className={`text-[9px] font-mono font-bold block truncate group-hover:text-[var(--accent-primary)] ${
-                      d.isCompleted ? "text-emerald-400" : "pro-text-muted"
-                    }`}>
-                      {d.problemTitle || "Challenge"}
-                    </span>
+                  <div className="mt-1 flex items-center justify-between gap-1">
+                    <a
+                      href={dayLeetcodeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-[9px] font-mono font-bold block truncate hover:underline flex items-center gap-1 ${
+                        d.isCompleted ? "text-emerald-400" : "pro-text-muted hover:text-[var(--accent-primary)]"
+                      }`}
+                      title={`Practice ${d.problemTitle || "Challenge"} on LeetCode`}
+                    >
+                      <span>{d.problemTitle || "Challenge"}</span>
+                      <ExternalLink size={9} className="shrink-0" />
+                    </a>
                   </div>
                 </div>
               );
@@ -321,16 +364,16 @@ export default function DailyCodingChallenge() {
                       <span className="text-xs font-bold text-[var(--accent-primary)]">+{item.xp} XP</span>
                     </div>
 
-                    {/* Direct Access Problem Button */}
-                    {item.problemId && (
-                      <Link
-                        to={`/coding/${item.problemId}?daily=true`}
-                        className="px-3 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-primary)] text-[10px] font-black uppercase text-[var(--accent-primary)] flex items-center gap-1 transition shadow-sm"
-                      >
-                        <span>Access</span>
-                        <ArrowRight size={11} />
-                      </Link>
-                    )}
+                    {/* Direct LeetCode Practice Button */}
+                    <a
+                      href={`https://leetcode.com/problems/${(item.topic || item.day || "two-sum").toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-primary)] text-[10px] font-black uppercase text-[var(--accent-primary)] flex items-center gap-1 transition shadow-sm hover:scale-105"
+                    >
+                      <span>LeetCode</span>
+                      <ExternalLink size={10} />
+                    </a>
                   </div>
                 </div>
               );

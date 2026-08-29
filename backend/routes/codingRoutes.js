@@ -8,7 +8,8 @@ const {
   getDailyChallenge,
   getAIHint,
   diagnoseMistake,
-  getUserSubmissions
+  getUserSubmissions,
+  toggleCalendarDay
 } = require("../controllers/codingController");
 
 // Problems
@@ -21,6 +22,7 @@ router.post("/submit", submitSolution);
 
 // Daily Challenge
 router.get("/daily-challenge", getDailyChallenge);
+router.post("/toggle-calendar-day", toggleCalendarDay);
 
 // Submissions History
 router.get("/submissions/:userId", getUserSubmissions);

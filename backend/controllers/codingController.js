@@ -436,10 +436,51 @@ const getUserSubmissions = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    res.json(submissions);
+// 9. Manual Toggle Calendar Day Completion
+const toggleCalendarDay = async (req, res) => {
+  try {
+    const { userId, dateStr, problemId } = req.body;
+    if (!userId || !dateStr) {
+      return res.status(400).json({ message: "userId and dateStr are required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.completedChallenges) user.completedChallenges = [];
+
+    const existingIdx = user.completedChallenges.findIndex(c => c.challengeDate === dateStr);
+    let isCompletedNow = false;
+
+    if (existingIdx !== -1) {
+      // Toggle off
+      user.completedChallenges.splice(existingIdx, 1);
+      isCompletedNow = false;
+    } else {
+      // Toggle on
+      user.completedChallenges.push({
+        challengeDate: dateStr,
+        problemId: problemId || null,
+        xpAwarded: 20,
+        completedAt: new Date()
+      });
+      user.xp = (user.xp || 0) + 20;
+      user.level = Math.floor(user.xp / 100) + 1;
+      isCompletedNow = true;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      dateStr,
+      isCompleted: isCompletedNow,
+      completedCount: user.completedChallenges.length,
+      xp: user.xp
+    });
   } catch (error) {
-    console.error("Get submissions error:", error);
-    res.status(500).json({ message: "Failed to fetch user submissions" });
+    console.error("Toggle calendar day error:", error);
+    res.status(500).json({ message: "Failed to toggle calendar day" });
   }
 };
 
@@ -451,5 +492,6 @@ module.exports = {
   getDailyChallenge,
   getAIHint,
   diagnoseMistake,
-  getUserSubmissions
+  getUserSubmissions,
+  toggleCalendarDay
 };
