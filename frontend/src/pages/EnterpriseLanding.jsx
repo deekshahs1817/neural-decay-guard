@@ -37,11 +37,11 @@ export default function EnterpriseLanding() {
 
   const PLATFORM_PILLARS = [
     {
-      title: "Algorithmic Coding Arena",
-      tag: "MULTI-LANGUAGE JUDGE",
-      icon: Code2,
-      desc: "500+ LeetCode-grade algorithmic challenges with in-browser multi-language execution (C, C++, Java, Python, JavaScript), 3-tier testcase validation, and progressive AI Coaching.",
-      stat: "500+ Problems"
+      title: "DSA Roadmap & LeetCode Practice",
+      tag: "25-SET CURRICULUM",
+      icon: BookOpen,
+      desc: "25 structured algorithmic roadmap sets covering Arrays to Advanced Dynamic Programming, featuring topic-specific concept guides, interactive assessment quizzes, and hand-curated LeetCode problem recommendations.",
+      stat: "25 Sets • 125 MCQs"
     },
     {
       title: "CSE Core Subjects Academy",
@@ -220,10 +220,10 @@ export default function EnterpriseLanding() {
                
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: "Algorithms in Bank", val: "500+", icon: Code2, color: "text-[var(--accent-primary)]" },
+                    { label: "DSA Roadmap Sets", val: "25 Sets", icon: BookOpen, color: "text-[var(--accent-primary)]" },
                     { label: "CSE Core Sets", val: "175 Sets", icon: GraduationCap, color: "text-emerald-400" },
                     { label: "Memory Stability", val: "e^(-Δt/S)", icon: Activity, color: "text-rose-400" },
-                    { label: "Supported Runtimes", val: "5 Languages", icon: Cpu, color: "text-cyan-400" },
+                    { label: "Curated LeetCode", val: "75+ Problems", icon: Sparkles, color: "text-amber-400" },
                   ].map((stat, i) => (
                     <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl shadow-sm">
                        <div className="flex items-center gap-2.5 mb-1.5">
@@ -304,7 +304,7 @@ export default function EnterpriseLanding() {
                 { title: "OOPs & Design Patterns", code: "OOPS", sets: "25 Sets", q: "125 Qs" },
                 { title: "Theory of Computation & CD", code: "TOC", sets: "25 Sets", q: "125 Qs" },
                 { title: "Software Eng & System Design", code: "SE", sets: "25 Sets", q: "125 Qs" },
-                { title: "DSA Complete Roadmap", code: "DSA-25", sets: "25 Sets", q: "125 Qs + Code" },
+                { title: "DSA Complete Roadmap", code: "DSA-25", sets: "25 Sets", q: "125 Qs + LeetCode" },
               ].map((c, i) => (
                 <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl space-y-2 hover:border-emerald-500/40 transition shadow-sm">
                    <div className="flex justify-between items-center">
@@ -337,7 +337,7 @@ export default function EnterpriseLanding() {
             </div>
             <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest pro-text-muted">
                <span className="hover:text-[var(--accent-primary)] transition-colors cursor-pointer">Ebbinghaus Retention</span>
-               <span className="hover:text-[var(--accent-primary)] transition-colors cursor-pointer">Multi-Language Judge</span>
+               <span className="hover:text-[var(--accent-primary)] transition-colors cursor-pointer">DSA Pattern Roadmap</span>
                <span className="hover:text-[var(--accent-primary)] transition-colors cursor-pointer">Cryptographic Verification</span>
             </div>
          </div>
