@@ -26,12 +26,10 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
 
       // Fetch authentic activity count from database map
       const totalActivities = dailyActivityMap[dateKey] || 0;
-      const problems = totalActivities > 0 ? Math.max(1, Math.floor(totalActivities * 0.4)) : 0;
-      const quizzes = Math.max(0, totalActivities - problems);
+      const quizzes = totalActivities;
       const dayXP = totalActivities * 25;
 
       let metricValue = totalActivities;
-      if (activeMetric === "coding") metricValue = problems;
       if (activeMetric === "quizzes") metricValue = quizzes;
       if (activeMetric === "xp") metricValue = dayXP;
 
@@ -39,7 +37,6 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
         date: dateDisplay,
         dateKey,
         dayName: range <= 14 ? `${dayName} ${d.getDate()}` : `${d.getDate()}`,
-        problems,
         quizzes,
         xp: dayXP,
         total: totalActivities,
@@ -100,7 +97,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
             </span>
           </div>
           <p className="text-xs pro-text-muted mt-0.5">
-            Verified day-by-day tracking of coding executions, retention quizzes, and XP growth.
+            Verified day-by-day tracking of retention quizzes, curriculum progression, and XP growth.
           </p>
         </div>
 
@@ -151,7 +148,6 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
         {[
           { id: "all", label: "All Tasks", icon: Sparkles },
-          { id: "coding", label: "Coding Solves", icon: Code2 },
           { id: "quizzes", label: "Retention Quizzes", icon: Brain },
           { id: "xp", label: "XP Velocity", icon: Zap }
         ].map(m => (
@@ -315,7 +311,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
               </div>
               <p className="text-xs pro-text-muted">
                 {selectedDay.total > 0 
-                  ? `${selectedDay.total} tasks completed (${selectedDay.problems} problems, ${selectedDay.quizzes} quizzes)` 
+                  ? `${selectedDay.total} retention quizzes & learning sets completed` 
                   : "No platform activity recorded on this day."}
               </p>
             </div>
