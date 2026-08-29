@@ -99,17 +99,43 @@ const submitQuiz = async (req, res) => {
 
     await attempt.save();
 
-    // Update streak
-    if (score >= 3) {
-      user.streak += 1;
+    // Update streak and record daily retention completion
+    const localNow = new Date();
+    const today = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+
+    user.streak = (user.streak || 0) + 1;
+    user.quizStreak = (user.quizStreak || 0) + 1;
+    user.codingStreak = user.streak;
+
+    const xpEarned = (score * 10) + 20;
+    user.xp = (user.xp || 0) + xpEarned;
+    user.level = Math.floor(user.xp / 100) + 1;
+
+    // Record today's completion in completedChallenges
+    if (!user.completedChallenges) user.completedChallenges = [];
+    if (!user.completedChallenges.some(cc => cc.challengeDate === today)) {
+      user.completedChallenges.push({
+        challengeDate: today,
+        xpAwarded: xpEarned,
+        completedAt: new Date()
+      });
     }
+
+    // Record daily activity map
+    if (!user.dailyActivityMap) user.dailyActivityMap = new Map();
+    const currentActivity = user.dailyActivityMap.get(today) || 0;
+    user.dailyActivityMap.set(today, currentActivity + 1);
 
     await user.save();
 
     res.json({
-      message: "Quiz submitted",
+      message: "Quiz submitted successfully",
       score,
-      streak: user.streak
+      totalQuestions: answers.length || 5,
+      streak: user.streak,
+      quizStreak: user.quizStreak,
+      xpEarned,
+      todayCompleted: true
     });
 
   } catch (error) {

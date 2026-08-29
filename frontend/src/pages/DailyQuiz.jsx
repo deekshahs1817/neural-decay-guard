@@ -27,6 +27,8 @@ export default function DailyQuiz() {
       });
   }, [userId]);
 
+  const [quizResult, setQuizResult] = useState(null);
+
   const select = (qid, opt) => {
     setAnswers({ ...answers, [qid]: opt });
   };
@@ -36,6 +38,7 @@ export default function DailyQuiz() {
     try {
       const res = await API.post('/submitQuiz', { userId, answers });
       setScore(res.data.score);
+      setQuizResult(res.data);
     } catch (err) {
       alert("Failed to submit quiz");
     } finally {
@@ -53,15 +56,45 @@ export default function DailyQuiz() {
 
   if (score !== null) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
-        <div className="w-32 h-32 bg-[var(--accent-glow)] rounded-full flex items-center justify-center mb-6 shadow-xl border border-[var(--border-color)]">
-          <CheckCircle className="text-emerald-500" size={64} />
+      <div className="flex flex-col items-center justify-center py-16 animate-in fade-in zoom-in duration-500 max-w-lg mx-auto text-center space-y-6">
+        <div className="w-24 h-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center shadow-xl border border-emerald-500/30">
+          <CheckCircle className="text-emerald-500" size={52} />
         </div>
-        <h2 className="text-3xl font-black pro-text-main mb-2">Quiz Complete!</h2>
-        <p className="pro-text-muted text-lg mb-8">You scored <span className="text-[var(--accent-primary)] font-bold text-3xl">{score}</span> points.</p>
-        <button onClick={() => navigate('/dashboard')} className="btn-primary flex items-center shadow-xl">
-          Return to Dashboard <ArrowRight className="ml-2" size={20} />
-        </button>
+        
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black pro-text-main">Retention Quiz Complete!</h2>
+          <p className="pro-text-muted text-sm font-medium">Your cognitive synapses have been reinforced against Ebbinghaus decay.</p>
+        </div>
+
+        {/* Streak Milestone Pill */}
+        <div className="p-5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl w-full flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-500">
+              <span className="text-2xl">🔥</span>
+            </div>
+            <div className="text-left">
+              <span className="text-[10px] font-black uppercase pro-text-muted tracking-wider block">Retention Streak</span>
+              <p className="text-xl font-black font-mono pro-text-main">
+                {quizResult?.streak || 1} <span className="text-xs font-normal pro-text-muted">Days Active</span>
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-black uppercase text-emerald-400 block">Score Earned</span>
+            <span className="text-xl font-black font-mono text-emerald-400">
+              {score} / {questions.length || 5}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+          <button onClick={() => navigate('/daily-challenge')} className="btn-primary flex-1 !py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl w-full">
+            <span>Daily Challenge Calendar</span> <ArrowRight size={16} />
+          </button>
+          <button onClick={() => navigate('/dashboard')} className="px-6 py-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm w-full sm:w-auto">
+            Dashboard
+          </button>
+        </div>
       </div>
     );
   }

@@ -57,8 +57,10 @@ function App() {
           <Route path="/core-subjects" element={<CoreSubjects />} />
           <Route path="/core-subjects/:courseId" element={<CourseDetail />} />
 
-          {/* Redirect /coding to /dashboard */}
-          <Route path="/coding" element={<Navigate to="/dashboard" replace />} />
+          {/* Redirect /coding and /coding/:id to /daily-quiz */}
+          <Route path="/coding" element={<Navigate to="/daily-quiz" replace />} />
+          <Route path="/coding/:id" element={<Navigate to="/daily-quiz" replace />} />
+          <Route path="/coding/*" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/daily-challenge" element={<DailyCodingChallenge />} />
           <Route path="/dsa-roadmap" element={<DSARoadmap />} />
 
