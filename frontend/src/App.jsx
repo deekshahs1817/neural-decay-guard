@@ -24,6 +24,9 @@ import DSARoadmap from "./pages/DSARoadmap";
 import CoreSubjects from "./pages/CoreSubjects";
 import CourseDetail from "./pages/CourseDetail";
 
+// Admin Judge Audit Dashboard
+import JudgeAudit from "./pages/JudgeAudit";
+
 import Layout from "./components/Layout";
 import BackgroundBrain from "./components/BackgroundBrain";
 
@@ -66,6 +69,7 @@ function App() {
           <Route path="/decay" element={<Decay />} />
           <Route path="/recommendation" element={<Recommendation />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/judge-audit" element={<JudgeAudit />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/daily-quiz" element={<DailyQuiz />} />
           <Route path="/focus-room" element={<FocusRoom />} />

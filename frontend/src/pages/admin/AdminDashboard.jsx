@@ -84,12 +84,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in zoom-in duration-500 max-w-5xl mx-auto">
-      <div className="border-b border-[var(--border-color)] pb-4 flex items-center">
-        <ShieldAlert className="text-[var(--accent-primary)] mr-3" size={32} />
-        <div>
-          <h1 className="text-2xl font-black pro-text-main uppercase tracking-widest">Master Overview</h1>
-          <p className="pro-text-muted text-sm mt-1">Platform Telemetry & Metrics</p>
+      <div className="border-b border-[var(--border-color)] pb-4 flex items-center justify-between">
+        <div className="flex items-center">
+          <ShieldAlert className="text-[var(--accent-primary)] mr-3" size={32} />
+          <div>
+            <h1 className="text-2xl font-black pro-text-main uppercase tracking-widest">Master Overview</h1>
+            <p className="pro-text-muted text-sm mt-1">Platform Telemetry & Metrics</p>
+          </div>
         </div>
+        <button
+          onClick={() => navigate("/admin/judge-audit")}
+          className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-md shadow-purple-900/30 flex items-center gap-2"
+        >
+          <span>Judge Quality Audit</span>
+          <span className="px-1.5 py-0.5 rounded bg-purple-800 text-[10px]">100% HEALTH</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

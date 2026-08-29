@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Problem = require("../models/Problem");
 const Submission = require("../models/Submission");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { auditEntireJudgeSystem } = require("../services/auditService");
 
 exports.getGlobalMetrics = async (req, res) => {
   try {
@@ -38,7 +39,6 @@ exports.generateAIProblem = async (req, res) => {
     const { promptTopic } = req.body;
     
     if (!process.env.GEMINI_API_KEY) {
-      // Mocked Creation if API key is missing
       const fallbackProblem = new Problem({
         title: `AI Generated: ${promptTopic}`,
         description: `This is a mock problem generated because the Gemini API key was not found. Please implement the algorithm for: ${promptTopic}.`,
@@ -73,7 +73,6 @@ exports.generateAIProblem = async (req, res) => {
 
     const problemData = JSON.parse(text);
     
-    // Add difficulty check
     if (!['Easy', 'Medium', 'Hard'].includes(problemData.difficulty)) {
        problemData.difficulty = 'Medium';
     }
@@ -86,5 +85,18 @@ exports.generateAIProblem = async (req, res) => {
   } catch (error) {
     console.error("AI Generation Error:", error.message);
     res.status(500).json({ message: "Failed to generate AI problem: " + error.message });
+  }
+};
+
+/**
+ * Judge Engine Audit & Quality Metrics
+ */
+exports.getJudgeAuditReport = async (req, res) => {
+  try {
+    const report = await auditEntireJudgeSystem();
+    res.json(report);
+  } catch (error) {
+    console.error("Judge Audit Error:", error);
+    res.status(500).json({ message: "Failed to generate judge audit report: " + error.message });
   }
 };

@@ -96,7 +96,7 @@ function validateLanguageSyntax(language, code) {
   const lang = (language || "").toLowerCase();
 
   // 1. Check Java constraints
-  if (lang.includes("java")) {
+  if (lang === "java" || lang.startsWith("java") && !lang.includes("script")) {
     if (clean.includes("vector<") || clean.includes("public:") || clean.includes("#include") || clean.includes("using namespace") || clean.includes("nullptr") || clean.includes("std::")) {
       return {
         valid: false,
@@ -118,7 +118,7 @@ function validateLanguageSyntax(language, code) {
   }
 
   // 2. Check C / C++ constraints
-  if (lang.includes("c") || lang.includes("cpp")) {
+  if (lang === "c" || lang === "cpp" || lang.startsWith("c++") || lang.startsWith("c (")) {
     if (clean.includes("def ") || clean.includes("elif ") || (clean.includes("print(") && !clean.includes("printf"))) {
       return {
         valid: false,
