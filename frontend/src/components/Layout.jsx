@@ -175,7 +175,6 @@ export default function Layout() {
   const clientNavItems = [
     { name: "Analytics Dashboard", path: "/dashboard", icon: <LayoutDashboard size={19} /> },
     { name: "CSE Core Academy (7 Courses)", path: "/core-subjects", icon: <GraduationCap size={19} className="text-emerald-400" /> },
-    { name: "Coding Arena", path: "/coding", icon: <Code2 size={19} className="text-[var(--accent-primary)]" /> },
     { name: "Daily Challenge", path: "/daily-challenge", icon: <Flame size={19} className="text-amber-500" /> },
     { name: "DSA Roadmap (25 Sets)", path: "/dsa-roadmap", icon: <BookOpen size={19} /> },
     { name: "Daily Retention Quiz", path: "/daily-quiz", icon: <Sparkles size={19} className="text-cyan-400" /> },

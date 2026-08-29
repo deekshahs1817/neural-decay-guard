@@ -122,13 +122,13 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link to="/coding" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
-            <Code2 size={16} />
-            <span>Coding Arena</span>
-          </Link>
-          <Link to="/daily-challenge" className="px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm flex items-center gap-2">
+          <Link to="/daily-challenge" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
             <Flame size={16} className="text-amber-500" />
             <span>Daily Challenge</span>
+          </Link>
+          <Link to="/dsa-roadmap" className="px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm flex items-center gap-2">
+            <BookOpen size={16} />
+            <span>DSA Roadmap</span>
           </Link>
           <Link to="/core-subjects" className="px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-black uppercase tracking-wider text-emerald-400 transition shadow-sm flex items-center gap-2">
             <GraduationCap size={16} />

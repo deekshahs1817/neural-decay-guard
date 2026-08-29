@@ -57,9 +57,8 @@ function App() {
           <Route path="/core-subjects" element={<CoreSubjects />} />
           <Route path="/core-subjects/:courseId" element={<CourseDetail />} />
 
-          {/* DSA & Coding Practice Platform Routes */}
-          <Route path="/coding" element={<CodingArena />} />
-          <Route path="/coding/:id" element={<CodingWorkspace />} />
+          {/* Redirect /coding to /dashboard */}
+          <Route path="/coding" element={<Navigate to="/dashboard" replace />} />
           <Route path="/daily-challenge" element={<DailyCodingChallenge />} />
           <Route path="/dsa-roadmap" element={<DSARoadmap />} />
 
