@@ -122,9 +122,13 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link to="/daily-quiz" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
-            <Sparkles size={16} className="text-amber-400" />
-            <span>Daily Retention Quiz</span>
+          <Link to="/daily-challenge" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
+            <Flame size={16} className="text-amber-500" />
+            <span>Daily Challenge</span>
+          </Link>
+          <Link to="/daily-quiz" className="px-4 py-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-xs font-black uppercase tracking-wider text-cyan-400 transition shadow-sm flex items-center gap-2">
+            <Sparkles size={16} />
+            <span>Retention Quiz</span>
           </Link>
           <Link to="/dsa-roadmap" className="px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm flex items-center gap-2">
             <BookOpen size={16} />
@@ -139,26 +143,26 @@ export default function Dashboard() {
 
       {/* Grid of Core Telemetry Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* 1. Coding & Quiz Streak */}
+        {/* 1. Retention Streak */}
         <div className="glass-card p-6 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[10px] pro-text-muted font-black tracking-widest uppercase">Coding Streak</p>
+            <p className="text-[10px] pro-text-muted font-black tracking-widest uppercase">Retention Streak</p>
             <p className="text-3xl font-black mt-1 font-mono pro-text-main">
-              {stats.codingStreak || stats.streak || 0} <span className="text-xs font-normal pro-text-muted">Days</span>
+              {stats.quizStreak || stats.streak || 0} <span className="text-xs font-normal pro-text-muted">Days</span>
             </p>
-            <span className="text-[10px] text-amber-500 font-mono font-bold mt-1 block">Active Retention Streak</span>
+            <span className="text-[10px] text-amber-500 font-mono font-bold mt-1 block">Quiz Retention Driven</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
             <Flame size={28} />
           </div>
         </div>
 
-        {/* 2. Problems Solved */}
+        {/* 2. LeetCode Problems Checked */}
         <div className="glass-card p-6 border-l-4 border-l-cyan-500 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-[10px] pro-text-muted font-black tracking-widest uppercase">Problems Solved</p>
+            <p className="text-[10px] pro-text-muted font-black tracking-widest uppercase">LeetCode Solved</p>
             <p className="text-3xl font-black mt-1 font-mono pro-text-main">{stats.solvedCodingCount || 0}</p>
-            <span className="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">Algorithm Challenges</span>
+            <span className="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">Calendar Checked</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center">
             <Code2 size={28} />

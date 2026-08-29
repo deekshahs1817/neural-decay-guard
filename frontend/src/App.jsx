@@ -16,6 +16,7 @@ import EnterpriseLanding from "./pages/EnterpriseLanding";
 
 // DSA & CSE Core Subjects Pages
 import DSARoadmap from "./pages/DSARoadmap";
+import DailyCodingChallenge from "./pages/DailyCodingChallenge";
 
 // New CSE Core Subjects Academy Pages
 import CoreSubjects from "./pages/CoreSubjects";
@@ -54,11 +55,11 @@ function App() {
           <Route path="/core-subjects" element={<CoreSubjects />} />
           <Route path="/core-subjects/:courseId" element={<CourseDetail />} />
 
-          {/* Redirect /coding, /coding/:id, and /daily-challenge to /daily-quiz */}
+          {/* Redirect /coding and /coding/:id to /daily-quiz */}
           <Route path="/coding" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/coding/:id" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/coding/*" element={<Navigate to="/daily-quiz" replace />} />
-          <Route path="/daily-challenge" element={<Navigate to="/daily-quiz" replace />} />
+          <Route path="/daily-challenge" element={<DailyCodingChallenge />} />
           <Route path="/dsa-roadmap" element={<DSARoadmap />} />
 
           {/* Existing Preserved Routes */}
