@@ -14,10 +14,7 @@ import FocusRoom from "./pages/FocusRoom";
 import EnterpriseBoard from "./pages/EnterpriseBoard";
 import EnterpriseLanding from "./pages/EnterpriseLanding";
 
-// New DSA & Coding Practice Platform Pages
-import CodingArena from "./pages/CodingArena";
-import CodingWorkspace from "./pages/CodingWorkspace";
-import DailyCodingChallenge from "./pages/DailyCodingChallenge";
+// DSA & CSE Core Subjects Pages
 import DSARoadmap from "./pages/DSARoadmap";
 
 // New CSE Core Subjects Academy Pages
@@ -57,11 +54,11 @@ function App() {
           <Route path="/core-subjects" element={<CoreSubjects />} />
           <Route path="/core-subjects/:courseId" element={<CourseDetail />} />
 
-          {/* Redirect /coding and /coding/:id to /daily-quiz */}
+          {/* Redirect /coding, /coding/:id, and /daily-challenge to /daily-quiz */}
           <Route path="/coding" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/coding/:id" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/coding/*" element={<Navigate to="/daily-quiz" replace />} />
-          <Route path="/daily-challenge" element={<DailyCodingChallenge />} />
+          <Route path="/daily-challenge" element={<Navigate to="/daily-quiz" replace />} />
           <Route path="/dsa-roadmap" element={<DSARoadmap />} />
 
           {/* Existing Preserved Routes */}

@@ -88,8 +88,8 @@ export default function DailyQuiz() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-          <button onClick={() => navigate('/daily-challenge')} className="btn-primary flex-1 !py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl w-full">
-            <span>Daily Challenge Calendar</span> <ArrowRight size={16} />
+          <button onClick={() => navigate('/dsa-roadmap')} className="btn-primary flex-1 !py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl w-full">
+            <span>Explore DSA Roadmap</span> <ArrowRight size={16} />
           </button>
           <button onClick={() => navigate('/dashboard')} className="px-6 py-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm w-full sm:w-auto">
             Dashboard

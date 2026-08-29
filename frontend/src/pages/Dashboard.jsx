@@ -122,9 +122,9 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link to="/daily-challenge" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
-            <Flame size={16} className="text-amber-500" />
-            <span>Daily Challenge</span>
+          <Link to="/daily-quiz" className="btn-primary !px-4 !py-2.5 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-400" />
+            <span>Daily Retention Quiz</span>
           </Link>
           <Link to="/dsa-roadmap" className="px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm flex items-center gap-2">
             <BookOpen size={16} />

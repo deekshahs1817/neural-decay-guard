@@ -75,18 +75,6 @@ export default function Layout() {
           });
         }
 
-        // 2. Daily Challenge Notification
-        generatedNotifs.push({
-          id: 'notif-daily',
-          type: 'challenge',
-          title: 'Daily Coding Challenge Ready',
-          desc: 'Solve today’s algorithmic problem to maintain your streak and earn +40 XP.',
-          time: 'Active Today',
-          icon: Flame,
-          color: 'text-amber-500 bg-amber-500/10',
-          link: '/daily-challenge'
-        });
-
         // 3. Particular Quiz / Retention Notification
         if (!hasActivityToday) {
           generatedNotifs.push({
@@ -175,7 +163,6 @@ export default function Layout() {
   const clientNavItems = [
     { name: "Analytics Dashboard", path: "/dashboard", icon: <LayoutDashboard size={19} /> },
     { name: "CSE Core Academy (7 Courses)", path: "/core-subjects", icon: <GraduationCap size={19} className="text-emerald-400" /> },
-    { name: "Daily Challenge", path: "/daily-challenge", icon: <Flame size={19} className="text-amber-500" /> },
     { name: "DSA Roadmap (25 Sets)", path: "/dsa-roadmap", icon: <BookOpen size={19} /> },
     { name: "Daily Retention Quiz", path: "/daily-quiz", icon: <Sparkles size={19} className="text-cyan-400" /> },
     { name: "Knowledge Profile", path: "/profile", icon: <Lightbulb size={19} /> },
