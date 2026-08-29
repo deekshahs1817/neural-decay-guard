@@ -4,7 +4,7 @@ const quizQuestionSchema = new mongoose.Schema({
   question: { type: String, required: true },
   type: { 
     type: String, 
-    enum: ["mcq", "output_prediction", "complexity_analysis", "debugging", "concept"],
+    enum: ["mcq", "output_prediction", "complexity_analysis", "debugging", "concept", "problem_solving"],
     default: "mcq"
   },
   codeSnippet: { type: String, default: "" },

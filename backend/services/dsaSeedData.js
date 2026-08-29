@@ -223,6 +223,8 @@ function generateCompleteProblems() {
   return problems;
 }
 
+const { DSA_25_SETS } = require("./dsaRoadmap25Sets");
+
 // Main seeder function
 async function seedDSAData() {
   try {
@@ -232,11 +234,10 @@ async function seedDSAData() {
     await CodingProblem.insertMany(problems);
     console.log(`[DSA Seeder] Successfully seeded ${problems.length} canonical coding problems!`);
 
-    const existingSetsCount = await DSALearningPath.countDocuments();
-    if (existingSetsCount < 25) {
-      await DSALearningPath.deleteMany({});
-      await DSALearningPath.insertMany(LEARNING_PATH_SETS);
-    }
+    // Re-seed all 25 Unique DSA Roadmap Sets with topic-specific questions and LeetCode recommendations
+    await DSALearningPath.deleteMany({});
+    await DSALearningPath.insertMany(DSA_25_SETS);
+    console.log(`[DSA Seeder] Successfully seeded all 25 Unique DSA Roadmap Sets with 125 MCQs and 75 LeetCode recommendations!`);
 
     const today = new Date().toISOString().split("T")[0];
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

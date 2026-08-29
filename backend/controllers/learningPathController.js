@@ -49,7 +49,7 @@ const getLearningSets = async (req, res) => {
 
 const CodingProblem = require("../models/CodingProblem");
 
-// 2. Get Single Learning Set Details (Enriched with real Coding Problems)
+// 2. Get Single Learning Set Details (With Curated LeetCode Problem Recommendations)
 const getSetDetails = async (req, res) => {
   try {
     const { setNumber } = req.params;
@@ -58,31 +58,6 @@ const getSetDetails = async (req, res) => {
     if (!set) {
       return res.status(404).json({ message: "DSA Set not found" });
     }
-
-    // Match coding problems for this set's category
-    let matchingProblems = await CodingProblem.find({ 
-      category: { $regex: new RegExp(set.category || set.title, "i") } 
-    }).select("_id title difficulty description category timeComplexity").limit(3).lean();
-
-    if (!matchingProblems || matchingProblems.length === 0) {
-      const skipCount = ((parseInt(setNumber) - 1) * 3) % 200;
-      matchingProblems = await CodingProblem.find()
-        .select("_id title difficulty description category timeComplexity")
-        .skip(skipCount)
-        .limit(3)
-        .lean();
-    }
-
-    const enrichedExercises = matchingProblems.map(p => ({
-      problemId: p._id,
-      title: p.title,
-      difficulty: p.difficulty,
-      category: p.category,
-      description: p.description ? p.description.split("\n")[0].substring(0, 120) : "Algorithmic practice challenge.",
-      timeComplexity: p.timeComplexity
-    }));
-
-    set.practiceExercises = enrichedExercises;
 
     res.json(set);
   } catch (error) {
