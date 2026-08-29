@@ -21,7 +21,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
       const d = new Date(Date.now() - i * 86400000);
       const isToday = i === 0;
       const dayName = dayNames[d.getDay()];
-      const dateKey = d.toISOString().split("T")[0];
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dateDisplay = d.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" });
 
       // Fetch authentic activity count from database map

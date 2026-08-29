@@ -57,7 +57,7 @@ export default function Dashboard() {
     // Check user's actual completed dates from stats/submissions
     for (let i = totalDays; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const isToday = i === 0;
       
       // Simulate realistic activity based on user streak & stats

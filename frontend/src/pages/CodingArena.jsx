@@ -62,12 +62,18 @@ export default function CodingArena() {
 
   const fetchDailyChallenge = async () => {
     try {
-      const res = await API.get("/coding/daily-challenge", { params: { userId } });
+      const localDate = new Date();
+      const clientDate = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+      const res = await API.get("/coding/daily-challenge", { params: { userId, clientDate } });
       setDailyChallenge(res.data);
     } catch (err) {
       console.error("Failed to load daily challenge:", err);
     }
   };
+
+  // Real-time client day calculation
+  const clientDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const currentDayOfWeek = clientDayNames[new Date().getDay()];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
@@ -116,7 +122,7 @@ export default function CodingArena() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
-                    TODAY'S CHALLENGE • {dailyChallenge.dayOfWeek}
+                    TODAY'S CHALLENGE • {currentDayOfWeek.toUpperCase()}
                   </span>
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                     dailyChallenge.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-500" :
