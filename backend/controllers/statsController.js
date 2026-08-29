@@ -1,4 +1,5 @@
 const Submission = require("../models/Submission");
+const QuizAttempt = require("../models/QuizAttempt");
 const CodingSubmission = require("../models/CodingSubmission");
 const User = require("../models/User");
 
@@ -10,22 +11,20 @@ exports.getUserStats = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Query real user submissions (handle both userId and user schema fields)
-    const attempts = await Submission.find({ 
-      $or: [{ userId }, { user: userId }] 
-    }).lean();
+    // Query all real user quiz attempts & submissions
+    const [attempts, quizAttempts] = await Promise.all([
+      Submission.find({ $or: [{ userId }, { user: userId }] }).lean(),
+      QuizAttempt.find({ userId }).lean()
+    ]);
 
-    const codingSubmissions = await CodingSubmission.find({ 
-      $or: [{ userId }, { user: userId }] 
-    }).lean();
+    const totalQuiz = attempts.length + quizAttempts.length;
+    const correctAttempts = attempts.filter(a => a.status === "Accepted").length + quizAttempts.filter(q => q.score >= 3).length;
+    const accuracy = totalQuiz > 0 ? Math.round((correctAttempts / totalQuiz) * 100) : 100;
 
-    const totalQuiz = attempts.length;
-    const correctAttempts = attempts.filter(a => a.status === "Accepted").length;
-    const accuracy = totalQuiz > 0 ? Math.round((correctAttempts / totalQuiz) * 100) : (codingSubmissions.length > 0 ? 100 : 0);
+    // LeetCode Solved Count strictly from Calendar Checks
+    const solvedCodingCount = user.completedChallenges?.length || 0;
 
-    const solvedCodingCount = user.solvedProblems?.length || codingSubmissions.filter(c => c.status === "Accepted").length || 0;
-
-    // Build real authentic Date -> Activity Count dictionary
+    // Build authentic Date -> Activity Count dictionary across all platform activities
     const dailyActivityMap = {};
     let totalRealSubmissions = 0;
     const todayStr = new Date().toISOString().split("T")[0];
@@ -44,30 +43,24 @@ exports.getUserStats = async (req, res) => {
       totalRealSubmissions += weight;
     };
 
-    // 1. Ingest Coding Submissions
-    codingSubmissions.forEach(sub => {
-      addActivity(sub.createdAt || todayStr, 1);
-    });
-
-    // 2. Ingest Quiz Submissions
+    // 1. Ingest Quiz Submissions (Submission model)
     attempts.forEach(sub => {
       addActivity(sub.createdAt || todayStr, 1);
     });
 
-    // 3. Ingest Solved Coding Problems
-    if (user.solvedProblems && Array.isArray(user.solvedProblems)) {
-      const activeDate = user.lastCodingDate || user.updatedAt || todayStr;
-      addActivity(activeDate, user.solvedProblems.length);
-    }
+    // 2. Ingest Daily Retention Quiz Attempts (QuizAttempt model)
+    quizAttempts.forEach(qa => {
+      addActivity(qa.createdAt || todayStr, 1);
+    });
 
-    // 4. Ingest Completed Challenges
+    // 3. Ingest LeetCode Calendar Checks (user.completedChallenges)
     if (user.completedChallenges && Array.isArray(user.completedChallenges)) {
       user.completedChallenges.forEach(cc => {
         addActivity(cc.completedAt || cc.challengeDate || todayStr, 1);
       });
     }
 
-    // 5. Ingest Course Progress sets (CSE Core Academy)
+    // 4. Ingest CSE Core Academy Course Sets Progress
     if (user.courseProgress) {
       for (const [_, pData] of Object.entries(user.courseProgress)) {
         if (pData && pData.completedSets && pData.completedSets.length > 0) {
@@ -76,15 +69,25 @@ exports.getUserStats = async (req, res) => {
       }
     }
 
-    // 6. Ingest DSA Learning Path Progress
+    // 5. Ingest DSA Learning Path Sets Progress
     if (user.learningPathProgress && user.learningPathProgress.completedSets && user.learningPathProgress.completedSets.length > 0) {
       addActivity(user.learningPathProgress.lastUpdated || user.updatedAt || todayStr, user.learningPathProgress.completedSets.length);
     }
 
-    // Always ensure today reflects user's live activity if they are actively using the platform
-    if (!dailyActivityMap[todayStr] && (user.xp > 0 || solvedCodingCount > 0)) {
-      dailyActivityMap[todayStr] = Math.max(1, solvedCodingCount || 1);
-      totalRealSubmissions += dailyActivityMap[todayStr];
+    // 6. Ingest Direct User Daily Activity Map if present
+    if (user.dailyActivityMap) {
+      const mapEntries = user.dailyActivityMap instanceof Map ? Array.from(user.dailyActivityMap.entries()) : Object.entries(user.dailyActivityMap);
+      mapEntries.forEach(([dKey, count]) => {
+        if (typeof count === "number" && count > 0) {
+          addActivity(dKey, count);
+        }
+      });
+    }
+
+    // Always ensure today reflects active session if user has XP
+    if (!dailyActivityMap[todayStr] && (user.xp > 0 || user.streak > 0)) {
+      dailyActivityMap[todayStr] = 1;
+      totalRealSubmissions += 1;
     }
 
     // Calculate Active Days & Streak

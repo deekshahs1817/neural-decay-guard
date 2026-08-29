@@ -48,7 +48,7 @@ export default function Layout() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Fetch Stats & Build Activity Notifications
+  // Fetch Stats & Build Clean Deduplicated Activity Notifications
   useEffect(() => {
     if (!userId) return;
     API.get(`/userStats/${userId}`)
@@ -56,32 +56,36 @@ export default function Layout() {
         const data = res.data;
         setUserStats(data);
 
-        // Dynamically build real-time activity notifications based on user state
+        const dismissedRaw = localStorage.getItem(`dismissed_notifs_${userId}`) || "[]";
+        let dismissedIds = [];
+        try {
+          dismissedIds = JSON.parse(dismissedRaw);
+        } catch {
+          dismissedIds = [];
+        }
+
         const generatedNotifs = [];
         const todayStr = new Date().toISOString().split("T")[0];
-        const hasActivityToday = data.dailyActivityMap && data.dailyActivityMap[todayStr];
+        const hasActivityToday = data.dailyActivityMap && Boolean(data.dailyActivityMap[todayStr]);
 
-        // 1. Live Completed Quiz / Activity Notification
-        if (hasActivityToday || data.totalQuiz > 0) {
+        // 1. Daily Retention Quiz Status Notification
+        if (hasActivityToday || (data.lastQuizDate === todayStr)) {
           generatedNotifs.push({
             id: 'notif-quiz-done',
             type: 'quiz',
-            title: 'Spaced Retention Quiz Completed',
-            desc: `Great job! Your retention score is boosted to ${data.retentionScore || 85}%.`,
+            title: 'Retention Quiz Completed',
+            desc: `Today's spaced repetition quiz is solved. Active streak maintained at ${data.quizStreak || data.streak || 1} days!`,
             time: 'Today',
             icon: CheckCircle2,
             color: 'text-emerald-400 bg-emerald-500/10',
-            link: '/dashboard'
+            link: '/daily-quiz'
           });
-        }
-
-        // 3. Particular Quiz / Retention Notification
-        if (!hasActivityToday) {
+        } else {
           generatedNotifs.push({
-            id: 'notif-quiz',
+            id: 'notif-quiz-pending',
             type: 'quiz',
             title: 'Daily Retention Quiz Synced',
-            desc: 'A 5-question spaced repetition quiz is ready based on your Knowledge Profile.',
+            desc: `A 5-question spaced repetition quiz is ready. Complete it to maintain your ${data.quizStreak || data.streak || 0}-day streak.`,
             time: 'Pending',
             icon: Sparkles,
             color: 'text-cyan-400 bg-cyan-500/10',
@@ -89,48 +93,84 @@ export default function Layout() {
           });
         }
 
-        // 4. Course Decaying Warning
+        // 2. LeetCode Daily Challenge Calendar
         generatedNotifs.push({
-          id: 'notif-decay',
-          type: 'decay',
-          title: 'Neural Decay Warning: 1 Course Decaying',
-          desc: 'Operating Systems & DBMS memory retention has dropped below 50%. Revive now!',
-          time: 'Urgent',
-          icon: AlertTriangle,
-          color: 'text-rose-500 bg-rose-500/10',
-          link: '/decay'
+          id: 'notif-leetcode-calendar',
+          type: 'challenge',
+          title: 'LeetCode Daily Challenge',
+          desc: `${data.solvedCodingCount || 0} problems checked on your monthly calendar. Solve today's challenge to earn +20 XP!`,
+          time: 'Active',
+          icon: Flame,
+          color: 'text-amber-500 bg-amber-500/10',
+          link: '/daily-challenge'
         });
 
-        // 5. Cognitive Break & Wellness Alert (When studying long sessions)
+        // 3. CSE Core Subjects Progress
         generatedNotifs.push({
-          id: 'notif-break',
+          id: 'notif-cse-academy',
+          type: 'cert',
+          title: 'CSE Core Academy',
+          desc: 'Advance through 25 structured sets per subject across DBMS, OS, Networks, COA, OOP, System Design, and TOC.',
+          time: 'Curriculum',
+          icon: GraduationCap,
+          color: 'text-emerald-400 bg-emerald-500/10',
+          link: '/core-subjects'
+        });
+
+        // 4. Focus Room Reset
+        generatedNotifs.push({
+          id: 'notif-wellness-reset',
           type: 'break',
-          title: 'Cognitive Break Recommendation',
-          desc: 'High cognitive intensity detected. Take a 5-minute Box Breathing reset in the Focus Room.',
+          title: 'Cognitive Reset (Focus Room)',
+          desc: 'Reset neural fatigue with 4-4-4-4 Box Breathing and binaural ambient soundscapes.',
           time: 'Wellness',
           icon: Coffee,
-          color: 'text-emerald-400 bg-emerald-500/10',
+          color: 'text-purple-400 bg-purple-500/10',
           link: '/focus-room'
         });
 
-        // 6. Certification Milestone
-        if (data.level >= 2 || data.solvedCodingCount > 0) {
-          generatedNotifs.push({
-            id: 'notif-cert',
-            type: 'cert',
-            title: 'CSE Core Academy Milestone',
-            desc: 'Course sets completed! Check your progress towards Master Verification Certificates.',
-            time: 'Milestone',
-            icon: Award,
-            color: 'text-[var(--accent-primary)] bg-[var(--accent-glow)]',
-            link: '/core-subjects'
-          });
-        }
+        // Deduplicate deterministically by unique ID
+        const uniqueNotifsMap = new Map();
+        generatedNotifs.forEach(n => {
+          if (!uniqueNotifsMap.has(n.id)) {
+            uniqueNotifsMap.set(n.id, n);
+          }
+        });
 
-        setNotifications(generatedNotifs);
+        const activeNotifs = Array.from(uniqueNotifsMap.values()).filter(n => !dismissedIds.includes(n.id));
+        setNotifications(activeNotifs);
       })
       .catch(err => console.error("Error loading user stats:", err));
   }, [userId, location.pathname]);
+
+  const handleDismissNotif = (e, notifId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dismissedRaw = localStorage.getItem(`dismissed_notifs_${userId}`) || "[]";
+    let dismissedIds = [];
+    try {
+      dismissedIds = JSON.parse(dismissedRaw);
+    } catch {
+      dismissedIds = [];
+    }
+    const updated = [...dismissedIds, notifId];
+    localStorage.setItem(`dismissed_notifs_${userId}`, JSON.stringify(updated));
+    setNotifications(prev => prev.filter(n => n.id !== notifId));
+  };
+
+  const handleClearAllNotifs = () => {
+    const allIds = notifications.map(n => n.id);
+    const dismissedRaw = localStorage.getItem(`dismissed_notifs_${userId}`) || "[]";
+    let dismissedIds = [];
+    try {
+      dismissedIds = JSON.parse(dismissedRaw);
+    } catch {
+      dismissedIds = [];
+    }
+    const updated = [...new Set([...dismissedIds, ...allIds])];
+    localStorage.setItem(`dismissed_notifs_${userId}`, JSON.stringify(updated));
+    setNotifications([]);
+  };
 
   // Close notifications on outside click
   useEffect(() => {
@@ -315,8 +355,8 @@ export default function Layout() {
                       <h4 className="text-xs font-black uppercase pro-text-main tracking-wider">Activity Feed ({notifications.length})</h4>
                     </div>
                     <button
-                      onClick={() => setNotifications([])}
-                      className="text-[10px] pro-text-muted hover:pro-text-main font-bold uppercase"
+                      onClick={handleClearAllNotifs}
+                      className="text-[10px] pro-text-muted hover:pro-text-main font-bold uppercase transition"
                     >
                       Clear All
                     </button>
@@ -324,31 +364,42 @@ export default function Layout() {
 
                   <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
                     {notifications.map((notif) => (
-                      <Link
+                      <div
                         key={notif.id}
-                        to={notif.link}
-                        onClick={() => setShowNotifications(false)}
-                        className="p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-start gap-3 transition group block"
+                        className="p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-start gap-3 transition group relative"
                       >
-                        <div className={`p-2 rounded-xl ${notif.color} shrink-0 mt-0.5`}>
-                          <notif.icon size={15} />
-                        </div>
-                        <div className="space-y-0.5 flex-1 min-w-0">
-                          <div className="flex justify-between items-center">
-                            <h5 className="text-xs font-black pro-text-main truncate group-hover:text-[var(--accent-primary)]">
-                              {notif.title}
-                            </h5>
-                            <span className="text-[9px] font-mono pro-text-muted ml-1 shrink-0">{notif.time}</span>
+                        <Link
+                          to={notif.link}
+                          onClick={() => setShowNotifications(false)}
+                          className="flex items-start gap-3 flex-1 min-w-0"
+                        >
+                          <div className={`p-2 rounded-xl ${notif.color} shrink-0 mt-0.5`}>
+                            <notif.icon size={15} />
                           </div>
-                          <p className="text-[11px] pro-text-muted leading-tight line-clamp-2">
-                            {notif.desc}
-                          </p>
-                        </div>
-                      </Link>
+                          <div className="space-y-0.5 flex-1 min-w-0">
+                            <div className="flex justify-between items-center pr-4">
+                              <h5 className="text-xs font-black pro-text-main truncate group-hover:text-[var(--accent-primary)]">
+                                {notif.title}
+                              </h5>
+                              <span className="text-[9px] font-mono pro-text-muted ml-1 shrink-0">{notif.time}</span>
+                            </div>
+                            <p className="text-[11px] pro-text-muted leading-tight line-clamp-2">
+                              {notif.desc}
+                            </p>
+                          </div>
+                        </Link>
+                        <button
+                          onClick={(e) => handleDismissNotif(e, notif.id)}
+                          className="text-slate-500 hover:text-slate-300 p-1 -mr-1 -mt-1 shrink-0 rounded transition"
+                          title="Dismiss notification"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
                     ))}
 
                     {notifications.length === 0 && (
-                      <div className="py-6 text-center pro-text-muted text-xs">
+                      <div className="py-6 text-center pro-text-muted text-xs font-medium">
                         No unread activity alerts.
                       </div>
                     )}
