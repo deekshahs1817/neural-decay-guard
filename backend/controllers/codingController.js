@@ -436,6 +436,13 @@ const getUserSubmissions = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
+    res.json(submissions);
+  } catch (error) {
+    console.error("Get submissions error:", error);
+    res.status(500).json({ message: "Failed to fetch user submissions" });
+  }
+};
+
 // 9. Manual Toggle Calendar Day Completion
 const toggleCalendarDay = async (req, res) => {
   try {
