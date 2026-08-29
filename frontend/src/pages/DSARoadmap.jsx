@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { 
   BookOpen, CheckCircle2, Lock, Sparkles, ChevronRight, 
-  X, Play, Award, Brain, Lightbulb, ArrowRight, HelpCircle
+  X, Play, Award, Brain, Lightbulb, ArrowRight, HelpCircle,
+  ExternalLink, Trophy
 } from "lucide-react";
 
 export default function DSARoadmap() {
@@ -187,7 +188,7 @@ export default function DSARoadmap() {
               {[
                 { id: "concept", label: "Concept Theory", icon: BookOpen },
                 { id: "quiz", label: `Assessment Quiz (${activeSet.quizQuestions?.length || 5} Qs)`, icon: HelpCircle },
-                { id: "practice", label: "Code Exercises", icon: Brain }
+                { id: "practice", label: "Suggested LeetCode Problems", icon: Trophy }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -353,51 +354,60 @@ export default function DSARoadmap() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="text-xs font-black uppercase text-[var(--accent-primary)] tracking-wider">
-                      Targeted Practice Problems ({activeSet.practiceExercises?.length || 0})
+                      Suggested LeetCode Practice Problems ({activeSet.practiceExercises?.length || 0})
                     </h4>
                     <span className="text-[10px] font-mono pro-text-muted">
-                      Direct Workspace Integration
+                      Direct LeetCode Practice Link
                     </span>
                   </div>
 
                   <div className="space-y-3">
-                    {activeSet.practiceExercises?.map((ex, i) => (
-                      <div 
-                        key={i} 
-                        onClick={() => ex.problemId && navigate(`/coding/${ex.problemId}`)}
-                        className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] hover:border-[var(--accent-primary)] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition cursor-pointer shadow-sm group"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              ex.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
-                              ex.difficulty === "Medium" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
-                              "bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                            }`}>
-                              {ex.difficulty}
-                            </span>
-                            {ex.timeComplexity && (
-                              <span className="text-[10px] font-mono text-[var(--accent-primary)] font-bold">
-                                {ex.timeComplexity}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="font-black text-sm pro-text-main group-hover:text-[var(--accent-primary)] transition-colors">
-                            {ex.title}
-                          </h4>
-                          <p className="pro-text-muted text-xs line-clamp-1">{ex.description}</p>
-                        </div>
+                    {activeSet.practiceExercises?.map((ex, i) => {
+                      const leetcodeSlug = (ex.title || "")
+                        .toLowerCase()
+                        .replace(/[^a-z0-9\s-]/g, '')
+                        .trim()
+                        .replace(/\s+/g, '-');
+                      const leetcodeUrl = ex.url || `https://leetcode.com/problems/${leetcodeSlug}/`;
 
-                        <Link
-                          to={`/coding/${ex.problemId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="btn-primary !px-4 !py-2 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0 shadow-md"
+                      return (
+                        <div 
+                          key={i} 
+                          className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] hover:border-[var(--accent-primary)] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition shadow-sm group"
                         >
-                          <span>Solve in Workspace</span>
-                          <ArrowRight size={13} />
-                        </Link>
-                      </div>
-                    ))}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                ex.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
+                                ex.difficulty === "Medium" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
+                                "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                              }`}>
+                                {ex.difficulty}
+                              </span>
+                              {ex.timeComplexity && (
+                                <span className="text-[10px] font-mono text-[var(--accent-primary)] font-bold">
+                                  {ex.timeComplexity}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-black text-sm pro-text-main group-hover:text-[var(--accent-primary)] transition-colors">
+                              {ex.title}
+                            </h4>
+                            <p className="pro-text-muted text-xs line-clamp-1">{ex.description}</p>
+                          </div>
+
+                          <a
+                            href={leetcodeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary !px-4 !py-2 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0 shadow-md hover:scale-105 transition-transform"
+                          >
+                            <span>Solve on LeetCode</span>
+                            <ExternalLink size={13} />
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
