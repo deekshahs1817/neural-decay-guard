@@ -2,10 +2,20 @@
   "name": "neural-decay-guard",
   "version": "1.0.0",
   "description": "AI-Powered Skill Retention & CSE Engineering Suite",
+  "main": "backend/server.js",
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend --include=dev",
-    "build": "cd frontend && npm install --include=dev && npm run build",
-    "start": "cd backend && node server.js"
+    "prebuild": "npm install --prefix backend && npm install --prefix frontend --include=dev",
+    "build": "cd frontend && npm install --include=dev && npx vite build",
+    "start": "node backend/server.js",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend --include=dev"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.2.3"
+  },
+  "devDependencies": {
+    "vite": "^8.0.1"
   },
   "keywords": [
     "skill-retention",
