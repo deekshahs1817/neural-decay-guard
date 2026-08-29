@@ -22,8 +22,11 @@ export default function DailyCodingChallenge() {
   const fetchChallengeData = async () => {
     try {
       setLoading(true);
+      const localDate = new Date();
+      const clientDate = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+      
       const [challengeRes, statsRes] = await Promise.all([
-        API.get("/coding/daily-challenge", { params: { userId } }),
+        API.get("/coding/daily-challenge", { params: { userId, clientDate } }),
         API.get(`/userStats/${userId}`)
       ]);
       setChallengeData(challengeRes.data);

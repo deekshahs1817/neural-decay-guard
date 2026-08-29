@@ -180,7 +180,16 @@ const submitSolution = async (req, res) => {
           if (!user.topicMastery) user.topicMastery = new Map();
           user.topicMastery.set(problem.category, updatedMastery);
 
-          // If Daily Challenge, record completion
+          // If Daily Challenge or solved problem, record completion
+          if (!user.completedChallenges) user.completedChallenges = [];
+          if (!user.completedChallenges.some(cc => cc.problemId?.toString() === problemId.toString())) {
+            user.completedChallenges.push({
+              challengeDate: today,
+              problemId: problem._id,
+              xpAwarded: xpEarned + streakBonus
+            });
+          }
+
           if (isDailyChallenge) {
             const dc = await DailyChallenge.findOne({ problem: problemId });
             if (dc && !dc.completions.some(c => c.user?.toString() === userId)) {
@@ -226,9 +235,16 @@ const submitSolution = async (req, res) => {
 // 5. Get Daily Coding Challenge
 const getDailyChallenge = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    // Use client-provided local date if present, or compute YYYY-MM-DD
+    const clientDate = req.query.clientDate;
+    const today = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)
+      ? clientDate
+      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const dayOfWeek = days[new Date().getDay()];
+    const parsedDate = new Date(`${today}T00:00:00`);
+    const dayOfWeek = days[isNaN(parsedDate.getDay()) ? now.getDay() : parsedDate.getDay()];
 
     let challenge = await DailyChallenge.findOne({ date: today }).populate("problem");
     
@@ -257,6 +273,39 @@ const getDailyChallenge = async (req, res) => {
       isCompleted = challenge.completions.some(c => c.user?.toString() === userId);
     }
 
+    // Load user solved problems set
+    const userSolvedSet = new Set();
+    const userCompletedDates = new Set();
+
+    if (userId) {
+      const user = await User.findById(userId).select("completedChallenges solvedProblems");
+      if (user) {
+        if (user.solvedProblems) {
+          user.solvedProblems.forEach(pId => userSolvedSet.add(pId.toString()));
+        }
+        if (user.completedChallenges) {
+          user.completedChallenges.forEach(cc => {
+            if (cc.challengeDate) userCompletedDates.add(cc.challengeDate);
+            if (cc.problemId) userSolvedSet.add(cc.problemId.toString());
+          });
+        }
+      }
+
+      // Check if today's challenge problem is in userSolvedSet
+      if (challenge.problem && userSolvedSet.has(challenge.problem._id.toString())) {
+        isCompleted = true;
+      }
+
+      // Also check DailyChallenge collection completions
+      const monthPrefix = today.slice(0, 7);
+      const monthChallenges = await DailyChallenge.find({ date: { $regex: `^${monthPrefix}` } }).lean();
+      monthChallenges.forEach(mc => {
+        if (mc.completions && mc.completions.some(c => c.user?.toString() === userId)) {
+          userCompletedDates.add(mc.date);
+        }
+      });
+    }
+
     // Generate Weekly Schedule with Accessible Problems
     const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const allProblems = await CodingProblem.find().select("_id title category difficulty").lean();
@@ -268,7 +317,6 @@ const getDailyChallenge = async (req, res) => {
       else if (dName === "Saturday") { diff = "Hard"; xp = 40; }
       else if (dName === "Sunday") { diff = "Mixed Challenge"; xp = 30; }
 
-      // Find a matching problem
       const prob = (diff === "Mixed Challenge")
         ? allProblems[idx % allProblems.length]
         : (allProblems.find(p => p.difficulty === diff) || allProblems[0]);
@@ -283,32 +331,11 @@ const getDailyChallenge = async (req, res) => {
     });
 
     // Generate LeetCode-style Monthly Calendar Days
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
+    const currentYear = parseInt(today.split("-")[0]);
+    const currentMonth = parseInt(today.split("-")[1]) - 1; // 0-indexed
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const monthName = monthNames[currentMonth];
-
-    // Get all challenges completed by this user in the current month
-    const userCompletedDates = new Set();
-    if (userId) {
-      const user = await User.findById(userId).select("completedChallenges solvedProblems");
-      if (user && user.completedChallenges) {
-        user.completedChallenges.forEach(cc => {
-          if (cc.challengeDate) userCompletedDates.add(cc.challengeDate);
-        });
-      }
-
-      // Also check DailyChallenge collection completions
-      const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-      const monthChallenges = await DailyChallenge.find({ date: { $regex: `^${monthPrefix}` } }).lean();
-      monthChallenges.forEach(mc => {
-        if (mc.completions && mc.completions.some(c => c.user?.toString() === userId)) {
-          userCompletedDates.add(mc.date);
-        }
-      });
-    }
 
     const monthDays = [];
     for (let d = 1; d <= daysInMonth; d++) {
@@ -316,13 +343,17 @@ const getDailyChallenge = async (req, res) => {
       const dayDate = new Date(currentYear, currentMonth, d);
       const dayOfWeekStr = days[dayDate.getDay()];
       const isDayToday = dateStr === today;
-      const isDayCompleted = userCompletedDates.has(dateStr) || (isDayToday && isCompleted);
 
       let dayDiff = "Medium";
       if (dayOfWeekStr === "Monday" || dayOfWeekStr === "Tuesday") dayDiff = "Easy";
       if (dayOfWeekStr === "Saturday") dayDiff = "Hard";
 
-      const dayProb = allProblems[(d * 7) % allProblems.length] || allProblems[0];
+      const dayProb = isDayToday && challenge.problem 
+        ? challenge.problem 
+        : (allProblems[(d * 7) % allProblems.length] || allProblems[0]);
+
+      const isProblemSolved = dayProb && userSolvedSet.has(dayProb._id.toString());
+      const isDayCompleted = userCompletedDates.has(dateStr) || (isDayToday && isCompleted) || isProblemSolved;
 
       monthDays.push({
         dayNumber: d,
@@ -331,8 +362,8 @@ const getDailyChallenge = async (req, res) => {
         difficulty: dayDiff,
         isCompleted: isDayCompleted,
         isToday: isDayToday,
-        problemId: isDayToday && challenge.problem ? challenge.problem._id : (dayProb ? dayProb._id : null),
-        problemTitle: isDayToday && challenge.problem ? challenge.problem.title : (dayProb ? dayProb.title : "Daily Algorithm")
+        problemId: dayProb ? dayProb._id : null,
+        problemTitle: dayProb ? dayProb.title : "Daily Algorithm"
       });
     }
 
