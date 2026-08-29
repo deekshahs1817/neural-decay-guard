@@ -507,9 +507,9 @@ export default function Layout() {
                 Today's Retention Protocol
               </span>
               {[
-                { name: "Daily Coding Challenge", desc: "Solve Saturday algorithm (+40 XP)", link: "/daily-challenge" },
-                { name: "Knowledge Profile Spaced Quiz", desc: "5-question retention check", link: "/daily-quiz" },
-                { name: "CSE Core Set Progression", desc: "Advance through 25 sets", link: "/core-subjects" },
+                { name: "Daily Retention Spaced Quiz", desc: "5-question neural retention check (+40 XP)", link: "/daily-quiz" },
+                { name: "DSA Roadmap Progression", desc: "Master 25 structured algorithmic sets", link: "/dsa-roadmap" },
+                { name: "CSE Core Set Progression", desc: "Advance through 25 sets per course", link: "/core-subjects" },
                 { name: "Focus Room Mental Reset", desc: "4-4-4-4 Box Breathing & ambient sound", link: "/focus-room" }
               ].map((task, i) => (
                 <Link
