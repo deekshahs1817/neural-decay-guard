@@ -107,6 +107,21 @@ const submitSolution = async (req, res) => {
 const getDailyRandomQuiz = async (req, res) => {
   try {
     const { userId } = req.query;
+    const tzOffsetMinutes = typeof req.query.tzOffset !== "undefined" ? parseInt(req.query.tzOffset, 10) : -330;
+    const clientTodayStr = req.query.clientDate || new Date(Date.now() - (tzOffsetMinutes * 60000)).toISOString().split("T")[0];
+
+    // Check if user has already submitted today's quiz
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user && user.lastQuizDate === clientTodayStr) {
+        return res.json({
+          alreadyCompleted: true,
+          streak: user.quizStreak || 0,
+          message: "You have already completed today's Daily Retention Quiz! Come back tomorrow to continue your streak."
+        });
+      }
+    }
+
     let targetTopics = [];
 
     if (userId) {
@@ -199,16 +214,31 @@ const getDailyRandomQuiz = async (req, res) => {
   }
 };
 
-// 5. Submit Multi-Question Retention Quiz
+// 5. Submit Multi-Question Retention Quiz (Strict 1 Submission Per Calendar Day)
 const submitDailyQuiz = async (req, res) => {
   try {
     const { userId, answers } = req.body;
+    const tzOffsetMinutes = typeof req.body.tzOffset !== "undefined" ? parseInt(req.body.tzOffset, 10) : -330;
+    const clientTodayStr = req.body.clientDate || new Date(Date.now() - (tzOffsetMinutes * 60000)).toISOString().split("T")[0];
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Strict 1-submission-per-day check
+    if (user.lastQuizDate === clientTodayStr) {
+      return res.status(400).json({
+        alreadyCompleted: true,
+        message: "Daily Retention Quiz can only be submitted once per calendar day.",
+        streak: user.quizStreak || 0
+      });
+    }
+
     let score = 0;
     let correctCount = 0;
-    const totalQuestions = Object.keys(answers).length;
+    const totalQuestions = Object.keys(answers || {}).length;
     
     // Evaluate and save Submission logs
-    for (const [qid, selected] of Object.entries(answers)) {
+    for (const [qid, selected] of Object.entries(answers || {})) {
       const p = await Problem.findById(qid);
       let isCorrect = false;
       if (p && p.correctAnswer === selected) {
@@ -235,23 +265,56 @@ const submitDailyQuiz = async (req, res) => {
       }
     }
 
-    // Award XP, Streaks & sync date to user
-    const user = await User.findById(userId);
-    if (user) {
-      if (!user.xp) user.xp = 0;
-      user.xp += (score || 10);
-      user.quizStreak = (user.quizStreak || 0) + 1;
-      user.streak = Math.max(user.streak || 0, user.quizStreak);
-      user.lastCodingDate = new Date().toISOString().split("T")[0];
-      await user.save();
+    // Strict consecutive calendar day streak calculation
+    let newStreak = user.quizStreak || 0;
+    if (user.lastQuizDate) {
+      const lastDate = new Date(user.lastQuizDate + "T00:00:00");
+      const curDate = new Date(clientTodayStr + "T00:00:00");
+      const diffTime = curDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        newStreak += 1;
+      } else if (diffDays > 1) {
+        newStreak = 1;
+      }
+    } else {
+      newStreak = 1;
     }
+
+    user.lastQuizDate = clientTodayStr;
+    user.quizStreak = newStreak;
+    user.streak = newStreak;
+    user.codingStreak = newStreak;
+    
+    const xpEarned = (score || 10) + 20;
+    user.xp = (user.xp || 0) + xpEarned;
+    user.level = Math.floor(user.xp / 100) + 1;
+
+    // Record today in completedChallenges
+    if (!user.completedChallenges) user.completedChallenges = [];
+    if (!user.completedChallenges.some(cc => cc.challengeDate === clientTodayStr)) {
+      user.completedChallenges.push({
+        challengeDate: clientTodayStr,
+        xpAwarded: xpEarned,
+        completedAt: new Date()
+      });
+    }
+
+    // Record today in dailyActivityMap
+    if (!user.dailyActivityMap) user.dailyActivityMap = new Map();
+    const curAct = user.dailyActivityMap.get(clientTodayStr) || 0;
+    user.dailyActivityMap.set(clientTodayStr, curAct + 1);
+
+    await user.save();
 
     res.json({ 
       score, 
       correctCount,
       totalQuestions,
-      xpEarned: score || 10,
-      message: "Daily Retention Quiz Evaluation Synchronized"
+      streak: newStreak,
+      xpEarned,
+      message: "Daily Retention Quiz Completed Successfully!"
     });
   } catch (error) {
     console.error("Submit daily quiz error:", error);

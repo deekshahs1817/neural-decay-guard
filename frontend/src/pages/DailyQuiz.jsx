@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
-import { Brain, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Brain, CheckCircle, ArrowRight, Loader2, ShieldCheck, Flame, Timer, Sparkles } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function DailyQuiz() {
   const userId = localStorage.getItem("userId");
@@ -13,12 +13,47 @@ export default function DailyQuiz() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+  const [timeLeft, setTimeLeft] = useState("");
+
+  // Real-time 24-hour Countdown Timer until Midnight Reset
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight - now;
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft(
+        `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`
+      );
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    API.get(`/daily-random`, { params: { userId } })
+    if (!userId) return;
+    const localNow = new Date();
+    const clientDate = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
+    const tzOffset = localNow.getTimezoneOffset();
+
+    API.get(`/daily-random`, { params: { userId, clientDate, tzOffset } })
       .then(res => {
-        setQuestions(res.data.questions || []);
-        setPersonalizedTopics(res.data.personalizedTopics || []);
+        if (res.data.alreadyCompleted) {
+          setAlreadyCompleted(true);
+          setStreakCount(res.data.streak || 0);
+        } else {
+          setQuestions(res.data.questions || []);
+          setPersonalizedTopics(res.data.personalizedTopics || []);
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -38,11 +73,18 @@ export default function DailyQuiz() {
     try {
       const localNow = new Date();
       const clientDate = `${localNow.getFullYear()}-${String(localNow.getMonth() + 1).padStart(2, '0')}-${String(localNow.getDate()).padStart(2, '0')}`;
-      const res = await API.post('/submitQuiz', { userId, answers, clientDate });
+      const tzOffset = localNow.getTimezoneOffset();
+
+      const res = await API.post('/submitQuiz', { userId, answers, clientDate, tzOffset });
       setScore(res.data.score);
       setQuizResult(res.data);
     } catch (err) {
-      alert("Failed to submit quiz");
+      if (err.response?.data?.alreadyCompleted) {
+        setAlreadyCompleted(true);
+        setStreakCount(err.response.data.streak || 0);
+      } else {
+        alert(err.response?.data?.message || "Failed to submit quiz");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -52,6 +94,57 @@ export default function DailyQuiz() {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="animate-spin text-[var(--accent-primary)]" size={48} />
+      </div>
+    );
+  }
+
+  // Already Completed Today View (Strict 1 Submission Per Day)
+  if (alreadyCompleted) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 animate-in fade-in zoom-in duration-500 max-w-lg mx-auto text-center space-y-6">
+        <div className="w-24 h-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center shadow-xl border border-emerald-500/30">
+          <ShieldCheck className="text-emerald-500" size={52} />
+        </div>
+        
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black uppercase mb-2">
+            <CheckCircle size={14} /> Completed For Today
+          </div>
+          <h2 className="text-3xl font-black pro-text-main">Synapses Reinforced!</h2>
+          <p className="pro-text-muted text-sm font-medium">
+            You have already completed today's Daily Retention Quiz. Only 1 submission is allowed per calendar day to ensure scientifically spaced recall.
+          </p>
+        </div>
+
+        {/* Active Streak Protected Card */}
+        <div className="p-5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl w-full flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-500">
+              <Flame size={24} />
+            </div>
+            <div className="text-left">
+              <span className="text-[10px] font-black uppercase pro-text-muted tracking-wider block">Retention Streak</span>
+              <p className="text-xl font-black font-mono pro-text-main">
+                {streakCount} <span className="text-xs font-normal pro-text-muted">Days Active</span>
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-black uppercase text-cyan-400 block">Next Quiz Unlocks In</span>
+            <span className="text-sm font-mono font-black text-cyan-400 flex items-center gap-1 justify-end">
+              <Timer size={13} /> {timeLeft}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+          <button onClick={() => navigate('/dsa-roadmap')} className="btn-primary flex-1 !py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl w-full">
+            <span>Explore DSA Roadmap</span> <ArrowRight size={16} />
+          </button>
+          <button onClick={() => navigate('/dashboard')} className="px-6 py-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-xs font-black uppercase tracking-wider pro-text-main transition shadow-sm w-full sm:w-auto">
+            Dashboard
+          </button>
+        </div>
       </div>
     );
   }
