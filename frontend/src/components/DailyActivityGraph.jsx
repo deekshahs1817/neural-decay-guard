@@ -1,17 +1,17 @@
 import { useState, useMemo } from "react";
 import { 
-  Activity, Calendar, Zap, Sparkles, Code2, Brain, 
-  BarChart2, LineChart, ChevronRight, CheckCircle2 
+  Activity, Calendar, Zap, Sparkles, Flame, Brain, 
+  BarChart2, LineChart, ChevronRight, CheckCircle2, GraduationCap, BookOpen 
 } from "lucide-react";
 
-export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, solvedCount = 0, totalXP = 0 }) {
+export default function DailyActivityGraph({ dailyActivityMap = {}, dailyBreakdownMap = {}, streak = 0, solvedCount = 0, totalXP = 0 }) {
   const [range, setRange] = useState(7); // 7, 14, 30 days
   const [chartType, setChartType] = useState("bars"); // 'bars' or 'curve'
-  const [activeMetric, setActiveMetric] = useState("all"); // 'all', 'coding', 'quizzes', 'xp'
+  const [activeMetric, setActiveMetric] = useState("all"); // 'all', 'quizzes', 'challenges', 'courses', 'xp'
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  // Compute strictly from genuine MongoDB dailyActivityMap
+  // Compute strictly from genuine MongoDB dailyActivityMap and dailyBreakdownMap
   const activityData = useMemo(() => {
     const today = new Date();
     const days = [];
@@ -24,13 +24,19 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
       const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dateDisplay = d.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" });
 
-      // Fetch authentic activity count from database map
+      // Fetch authentic activity count and breakdown from database map
       const totalActivities = dailyActivityMap[dateKey] || 0;
-      const quizzes = totalActivities;
-      const dayXP = totalActivities * 25;
+      const breakdown = dailyBreakdownMap[dateKey] || { quizzes: totalActivities, challenges: 0, courses: 0, dsa: 0 };
+      
+      const quizzes = breakdown.quizzes || 0;
+      const challenges = breakdown.challenges || 0;
+      const courses = (breakdown.courses || 0) + (breakdown.dsa || 0);
+      const dayXP = (totalActivities * 25) || (breakdown.xp || 0);
 
       let metricValue = totalActivities;
       if (activeMetric === "quizzes") metricValue = quizzes;
+      if (activeMetric === "challenges") metricValue = challenges;
+      if (activeMetric === "courses") metricValue = courses;
       if (activeMetric === "xp") metricValue = dayXP;
 
       days.push({
@@ -38,6 +44,8 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
         dateKey,
         dayName: range <= 14 ? `${dayName} ${d.getDate()}` : `${d.getDate()}`,
         quizzes,
+        challenges,
+        courses,
         xp: dayXP,
         total: totalActivities,
         value: metricValue,
@@ -57,7 +65,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
       avgDaily,
       activeDaysCount
     };
-  }, [range, dailyActivityMap, totalXP, activeMetric]);
+  }, [range, dailyActivityMap, dailyBreakdownMap, totalXP, activeMetric]);
 
   const maxVal = Math.max(...activityData.days.map(d => d.value), 4);
 
@@ -97,7 +105,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
             </span>
           </div>
           <p className="text-xs pro-text-muted mt-0.5">
-            Verified day-by-day tracking of retention quizzes, curriculum progression, and XP growth.
+            Verified day-by-day telemetry tracking retention quizzes, LeetCode calendar checks, and course sets.
           </p>
         </div>
 
@@ -147,8 +155,10 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
       {/* Metric Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
         {[
-          { id: "all", label: "All Tasks", icon: Sparkles },
+          { id: "all", label: "All Activities", icon: Sparkles },
           { id: "quizzes", label: "Retention Quizzes", icon: Brain },
+          { id: "challenges", label: "LeetCode Checks", icon: Flame },
+          { id: "courses", label: "Course & DSA Sets", icon: GraduationCap },
           { id: "xp", label: "XP Velocity", icon: Zap }
         ].map(m => (
           <button
@@ -194,18 +204,22 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
                     <div className="w-full max-w-[32px] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-t-xl h-full flex items-end p-0.5 transition-all group-hover:border-[var(--accent-primary)] overflow-hidden">
                       <div
                         className={`w-full rounded-t-lg transition-all duration-500 ${
-                          day.value > 0
-                            ? "bg-gradient-to-t from-[var(--accent-primary)] to-cyan-400 shadow-[0_0_12px_var(--accent-glow)]"
-                            : "bg-slate-700/20"
-                        } ${isSelected ? "ring-2 ring-emerald-400" : ""}`}
-                        style={{ height: `${day.value > 0 ? heightPercent : 6}%` }}
+                          isSelected
+                            ? "bg-gradient-to-t from-emerald-500 to-cyan-400 shadow-md ring-2 ring-emerald-500"
+                            : isHovered
+                            ? "bg-gradient-to-t from-cyan-500 to-[var(--accent-primary)]"
+                            : day.isToday
+                            ? "bg-gradient-to-t from-[var(--accent-primary)] via-cyan-400 to-emerald-400"
+                            : day.value > 0
+                            ? "bg-gradient-to-t from-[var(--accent-primary)]/80 to-[var(--accent-glow-strong)]"
+                            : "bg-slate-800/40"
+                        }`}
+                        style={{ height: `${heightPercent}%` }}
                       />
                     </div>
 
-                    {/* X-Axis Day Label */}
-                    <span className={`text-[10px] font-mono transition-colors whitespace-nowrap ${
-                      day.isToday ? "text-[var(--accent-primary)] font-black" : "pro-text-muted"
-                    }`}>
+                    {/* Day Label */}
+                    <span className={`text-[11px] font-mono font-bold transition ${day.isToday ? "text-[var(--accent-primary)] font-black" : "pro-text-muted group-hover:pro-text-main"}`}>
                       {day.dayName}
                     </span>
                   </div>
@@ -214,84 +228,72 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
             </div>
           </div>
         ) : (
-          /* Smooth SVG Curve Representation */
-          <div className="overflow-hidden">
-            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-44 overflow-visible">
-              <defs>
-                <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.45" />
-                  <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
+          /* Smooth Continuous Trend Line SVG Chart */
+          <div className="space-y-4">
+            <div className="w-full h-44 relative">
+              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+                <defs>
+                  <linearGradient id="curveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
 
-              {/* Background Grid Lines */}
-              {[0, 0.33, 0.66, 1].map((ratio, i) => {
-                const yLine = height - paddingY - ratio * (height - 2 * paddingY);
-                return (
+                {/* Grid guidelines */}
+                {[0.25, 0.5, 0.75, 1].map((lvl, idx) => (
                   <line
-                    key={i}
+                    key={idx}
                     x1={paddingX}
-                    y1={yLine}
+                    y1={height - paddingY - lvl * (height - 2 * paddingY)}
                     x2={width - paddingX}
-                    y2={yLine}
+                    y2={height - paddingY - lvl * (height - 2 * paddingY)}
                     stroke="var(--border-color)"
                     strokeDasharray="4 4"
                     strokeWidth="1"
-                    className="opacity-40"
                   />
-                );
-              })}
+                ))}
 
-              <path d={areaD} fill="url(#activityGradient)" />
-              <path 
-                d={pathD} 
-                fill="none" 
-                stroke="var(--accent-primary)" 
-                strokeWidth="3.5" 
-                strokeLinecap="round"
-                className="filter drop-shadow-[0_2px_8px_var(--accent-glow)]"
-              />
+                {/* Filled Gradient Area */}
+                <path d={areaD} fill="url(#curveGradient)" />
 
-              {points.map((pt, i) => (
-                <g key={i}>
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={hoveredPoint?.dateKey === pt.dateKey ? 6.5 : pt.value > 0 ? 5 : 3}
-                    fill={pt.value > 0 ? "var(--accent-primary)" : "var(--bg-card)"}
-                    stroke="var(--accent-primary)"
-                    strokeWidth="2.5"
-                    className="cursor-pointer transition-all duration-150"
-                    onClick={() => setSelectedDay(pt)}
-                    onMouseEnter={() => setHoveredPoint(pt)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                  <text
-                    x={pt.x}
-                    y={height - 5}
-                    textAnchor="middle"
-                    className={`text-[9px] font-mono fill-current ${
-                      pt.isToday ? "text-[var(--accent-primary)] font-bold" : "pro-text-muted opacity-80"
-                    }`}
-                  >
-                    {pt.dayName}
-                  </text>
-                </g>
-              ))}
-            </svg>
-          </div>
-        )}
+                {/* Continuous Line Curve */}
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="var(--accent-primary)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  className="filter drop-shadow-md"
+                />
 
-        {/* Hover Tooltip Card */}
-        {hoveredPoint && !selectedDay && (
-          <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-xl flex items-center justify-between text-xs animate-in fade-in zoom-in-95 duration-100">
-            <div className="flex items-center gap-3">
-              <Calendar size={16} className="text-[var(--accent-primary)]" />
-              <span className="font-black pro-text-main">{hoveredPoint.date}</span>
+                {/* Interactive Data Nodes */}
+                {points.map((pt, idx) => (
+                  <g key={idx}>
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={pt.isToday ? "6" : "4"}
+                      className={`cursor-pointer transition-all duration-200 ${
+                        pt.isToday
+                          ? "fill-emerald-400 stroke-2 stroke-[var(--bg-secondary)]"
+                          : "fill-[var(--accent-primary)] stroke-2 stroke-[var(--bg-secondary)] hover:r-7"
+                      }`}
+                      onClick={() => setSelectedDay(pt)}
+                      onMouseEnter={() => setHoveredPoint(pt)}
+                      onMouseLeave={() => setHoveredPoint(null)}
+                    />
+                  </g>
+                ))}
+              </svg>
             </div>
-            <div className="flex items-center gap-4 text-[11px] font-mono">
-              <span className="text-[var(--accent-primary)] font-bold">{hoveredPoint.total} Submissions</span>
-              <span className="text-emerald-400 font-bold">+{hoveredPoint.xp} XP</span>
+
+            {/* Bottom Day Names */}
+            <div className="flex justify-between px-4 text-[10px] font-mono pro-text-muted">
+              {activityData.days.map((d, i) => (
+                <span key={i} className={d.isToday ? "text-[var(--accent-primary)] font-black" : ""}>
+                  {d.dayName}
+                </span>
+              ))}
             </div>
           </div>
         )}
@@ -311,7 +313,7 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, streak = 0, 
               </div>
               <p className="text-xs pro-text-muted">
                 {selectedDay.total > 0 
-                  ? `${selectedDay.total} retention quizzes & learning sets completed` 
+                  ? `${selectedDay.total} total platform actions (${selectedDay.quizzes} quizzes, ${selectedDay.challenges} LeetCode checks, ${selectedDay.courses} curriculum sets)` 
                   : "No platform activity recorded on this day."}
               </p>
             </div>

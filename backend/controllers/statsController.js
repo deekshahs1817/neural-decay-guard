@@ -30,12 +30,12 @@ exports.getUserStats = async (req, res) => {
 
     // Build authentic Date -> Activity Count dictionary across all platform activities
     const dailyActivityMap = {};
+    const dailyBreakdownMap = {};
     let totalRealSubmissions = 0;
 
     const toClientDateStr = (dateObj) => {
       if (!dateObj) return clientTodayStr;
       if (typeof dateObj === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateObj)) {
-        // If string matches clientTodayStr or is an explicit date string
         return dateObj;
       }
       const d = new Date(dateObj);
@@ -44,27 +44,34 @@ exports.getUserStats = async (req, res) => {
       return adjusted.toISOString().split("T")[0];
     };
 
-    const addActivity = (dateObj, weight = 1) => {
-      if (!dateObj) return;
+    const recordCategoryActivity = (dateObj, category, weight = 1) => {
+      if (!dateObj || weight <= 0) return;
       const dateStr = toClientDateStr(dateObj);
       dailyActivityMap[dateStr] = (dailyActivityMap[dateStr] || 0) + weight;
       totalRealSubmissions += weight;
+
+      if (!dailyBreakdownMap[dateStr]) {
+        dailyBreakdownMap[dateStr] = { quizzes: 0, challenges: 0, courses: 0, dsa: 0, total: 0, xp: 0 };
+      }
+      dailyBreakdownMap[dateStr][category] = (dailyBreakdownMap[dateStr][category] || 0) + weight;
+      dailyBreakdownMap[dateStr].total = (dailyBreakdownMap[dateStr].total || 0) + weight;
+      dailyBreakdownMap[dateStr].xp = dailyBreakdownMap[dateStr].total * 25;
     };
 
     // 1. Ingest Quiz Submissions (Submission model)
     attempts.forEach(sub => {
-      addActivity(sub.createdAt || clientTodayStr, 1);
+      recordCategoryActivity(sub.createdAt || clientTodayStr, 'quizzes', 1);
     });
 
     // 2. Ingest Daily Retention Quiz Attempts (QuizAttempt model)
     quizAttempts.forEach(qa => {
-      addActivity(qa.createdAt || clientTodayStr, 1);
+      recordCategoryActivity(qa.createdAt || clientTodayStr, 'quizzes', 1);
     });
 
     // 3. Ingest LeetCode Calendar Checks (user.completedChallenges)
     if (user.completedChallenges && Array.isArray(user.completedChallenges)) {
       user.completedChallenges.forEach(cc => {
-        addActivity(cc.completedAt || cc.challengeDate || clientTodayStr, 1);
+        recordCategoryActivity(cc.completedAt || cc.challengeDate || clientTodayStr, 'challenges', 1);
       });
     }
 
@@ -72,14 +79,14 @@ exports.getUserStats = async (req, res) => {
     if (user.courseProgress) {
       for (const [_, pData] of Object.entries(user.courseProgress)) {
         if (pData && pData.completedSets && pData.completedSets.length > 0) {
-          addActivity(pData.lastUpdated || user.updatedAt || clientTodayStr, pData.completedSets.length);
+          recordCategoryActivity(pData.lastUpdated || user.updatedAt || clientTodayStr, 'courses', pData.completedSets.length);
         }
       }
     }
 
     // 5. Ingest DSA Learning Path Sets Progress
     if (user.learningPathProgress && user.learningPathProgress.completedSets && user.learningPathProgress.completedSets.length > 0) {
-      addActivity(user.learningPathProgress.lastUpdated || user.updatedAt || clientTodayStr, user.learningPathProgress.completedSets.length);
+      recordCategoryActivity(user.learningPathProgress.lastUpdated || user.updatedAt || clientTodayStr, 'dsa', user.learningPathProgress.completedSets.length);
     }
 
     // 6. Ingest Direct User Daily Activity Map if present
@@ -87,16 +94,15 @@ exports.getUserStats = async (req, res) => {
       const mapEntries = user.dailyActivityMap instanceof Map ? Array.from(user.dailyActivityMap.entries()) : Object.entries(user.dailyActivityMap);
       mapEntries.forEach(([dKey, count]) => {
         if (typeof count === "number" && count > 0) {
-          addActivity(dKey, count);
+          recordCategoryActivity(dKey, 'quizzes', count);
         }
       });
     }
 
     // Always ensure clientTodayStr reflects active session if user has XP or activity
-    if (!dailyActivityMap[clientTodayStr] && (user.xp > 0 || user.streak > 0 || totalRealSubmissions > 0)) {
+    if (!dailyActivityMap[clientTodayStr] && (user.xp > 0 || totalRealSubmissions > 0)) {
       const fallbackActivity = Math.max(1, totalRealSubmissions || 1);
-      dailyActivityMap[clientTodayStr] = fallbackActivity;
-      totalRealSubmissions = Math.max(totalRealSubmissions, fallbackActivity);
+      recordCategoryActivity(clientTodayStr, 'quizzes', fallbackActivity);
     }
 
     // Calculate Active Days & Streak
@@ -135,7 +141,8 @@ exports.getUserStats = async (req, res) => {
       retentionScore,
       masteredTopics: user.masteredTopics || [],
       learningTopics: user.learningTopics || [],
-      dailyActivityMap, // Pure real database dictionary { "2026-08-29": 31, ... }
+      dailyActivityMap, // Pure real database dictionary { "2026-08-30": 17, ... }
+      dailyBreakdownMap,
       totalRealSubmissions,
       totalActiveDays,
       heatmapData,
