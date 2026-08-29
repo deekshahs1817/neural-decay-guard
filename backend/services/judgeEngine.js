@@ -278,8 +278,8 @@ function executeJavaScript(code, testCases, expectedFunctionName) {
           
           if (expectedName && typeof eval(expectedName) === 'function') {
             targetFunc = eval(expectedName);
-          } else {
-            // Find any defined function
+          } else if (!expectedName) {
+            // Find default solution function
             const funcNames = ['solution', 'solve', 'twoSum', 'maxSubArray', 'lengthOfLongestSubstring', 
                                'reverseList', 'isValid', 'merge', 'search', 'levelOrder', 'coinChange', 
                                'longestCommonSubsequence', 'trap', 'minDistance', 'canJump', 'main', 'findMedianSortedArrays'];
@@ -303,7 +303,7 @@ function executeJavaScript(code, testCases, expectedFunctionName) {
             }
             userResult = targetFunc(...parsedArgs);
           } else {
-            userResult = "Compilation Error: Function not found in submission.";
+            userResult = "Compilation Error: Function '" + (expectedName || "solution") + "' was not defined in your submission.";
           }
         } catch(err) {
           userResult = "Runtime Error: " + err.message;
@@ -377,8 +377,9 @@ ${code}
 try:
     expected_fn = "${expectedFunctionName || ''}"
     fn = None
-    if expected_fn and expected_fn in locals() and callable(locals()[expected_fn]):
-        fn = locals()[expected_fn]
+    if expected_fn:
+        if expected_fn in locals() and callable(locals()[expected_fn]):
+            fn = locals()[expected_fn]
     else:
         candidate_funcs = [v for k, v in list(locals().items()) if callable(v) and not k.startswith('__')]
         if candidate_funcs:

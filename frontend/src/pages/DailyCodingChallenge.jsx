@@ -232,6 +232,15 @@ export default function DailyCodingChallenge() {
 
           {/* Days Grid */}
           <div className="grid grid-cols-7 gap-2">
+            {/* Empty padding cells so Day 1 starts under its exact Day of the Week */}
+            {Array.from({ 
+              length: (monthDays && monthDays.length > 0 && monthDays[0].date) 
+                ? new Date(monthDays[0].date + "T00:00:00").getDay() 
+                : new Date(localDate.getFullYear(), localDate.getMonth(), 1).getDay() 
+            }).map((_, padIdx) => (
+              <div key={`pad-${padIdx}`} className="p-3 min-h-[75px] rounded-2xl border border-dashed border-slate-800/40 bg-slate-950/20 pointer-events-none" />
+            ))}
+
             {monthDays?.map((d) => {
               const isToday = d.date === currentDateStr;
               return (
