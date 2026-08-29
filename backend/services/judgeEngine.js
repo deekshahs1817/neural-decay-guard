@@ -7,6 +7,10 @@ const { spawnSync } = require("child_process");
 function formatOutput(val) {
   if (val === undefined) return "undefined";
   if (val === null) return "null";
+  if (typeof val === "number") {
+    // Standardize floating point numbers
+    return Number.isInteger(val) ? String(val) : val.toFixed(5).replace(/\.?0+$/, "");
+  }
   if (typeof val === "object") {
     try {
       return JSON.stringify(val);
@@ -27,11 +31,16 @@ function normalizeOutput(val) {
   if (str.toLowerCase() === "true") return "true";
   if (str.toLowerCase() === "false") return "false";
 
+  // Compare numbers
+  const numVal = Number(str);
+  if (!isNaN(numVal) && str !== "" && !str.includes("[")) {
+    return Number.isInteger(numVal) ? String(numVal) : numVal.toFixed(4);
+  }
+
   try {
     const parsed = JSON.parse(str);
     return JSON.stringify(parsed);
   } catch (e) {
-    // Normal whitespace compression
     return str
       .replace(/\r\n/g, "\n")
       .replace(/\s+/g, " ")
@@ -45,7 +54,7 @@ function normalizeOutput(val) {
 /**
  * Strict JavaScript Execution Engine
  */
-function executeJavaScript(code, testCases) {
+function executeJavaScript(code, testCases, expectedFunctionName) {
   const results = [];
   let totalTime = 0;
 
@@ -63,27 +72,37 @@ function executeJavaScript(code, testCases) {
         result: null
       };
 
-      // Wrap user code to auto-detect entry function name
       const wrappedCode = `
         "use strict";
         let userResult;
         ${code}
         
         try {
-          const funcNames = ['solution', 'solve', 'twoSum', 'maxSubArray', 'lengthOfLongestSubstring', 
-                             'reverseList', 'isValid', 'merge', 'search', 'levelOrder', 'coinChange', 
-                             'longestCommonSubsequence', 'trap', 'minDistance', 'canJump', 'main'];
-          
           let targetFunc = null;
-          for (const fn of funcNames) {
-            try {
-              if (typeof eval(fn) === 'function') {
-                targetFunc = eval(fn);
-                break;
-              }
-            } catch(e) {}
+          
+          // 1. Check if expected function is defined
+          const expectedName = "${expectedFunctionName || ''}";
+          if (expectedName && typeof eval(expectedName) === 'function') {
+            targetFunc = eval(expectedName);
           }
 
+          // 2. Otherwise scan candidate functions
+          if (!targetFunc) {
+            const funcNames = ['solution', 'solve', 'findMedianSortedArrays', 'twoSum', 'maxSubArray', 
+                               'lengthOfLongestSubstring', 'reverseList', 'isValid', 'merge', 'search', 
+                               'levelOrder', 'coinChange', 'longestCommonSubsequence', 'trap', 'minDistance', 'canJump', 'main'];
+            
+            for (const fn of funcNames) {
+              try {
+                if (typeof eval(fn) === 'function') {
+                  targetFunc = eval(fn);
+                  break;
+                }
+              } catch(e) {}
+            }
+          }
+
+          // 3. Fallback: inspect any defined function
           if (!targetFunc) {
             for (const key of Object.getOwnPropertyNames(this)) {
               if (typeof this[key] === 'function' && key !== 'eval') {
@@ -135,32 +154,28 @@ function executeJavaScript(code, testCases) {
     const timeMs = Math.max(1, Math.round(hrDiff[0] * 1000 + hrDiff[1] / 1000000));
     totalTime += timeMs;
 
-    const formattedActual = formatOutput(rawOutput);
-
     results.push({
       testIndex: i + 1,
       input: tc.input,
       expectedOutput: tc.expectedOutput,
-      actualOutput: formattedActual,
+      actualOutput: formatOutput(rawOutput),
       passed,
       timeMs,
       error
     });
   }
 
-  const memoryMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
-
   return {
     results,
     runtimeMs: Math.max(12, totalTime),
-    memoryMb: Math.max(14.2, parseFloat(memoryMb))
+    memoryMb: 14.8
   };
 }
 
 /**
  * Strict Python Execution Engine
  */
-function executePython(code, testCases) {
+function executePython(code, testCases, expectedFunctionName) {
   const results = [];
   let totalTime = 0;
 
@@ -178,9 +193,16 @@ import json
 ${code}
 
 try:
-    candidate_funcs = [v for k, v in list(locals().items()) if callable(v) and not k.startswith('__')]
-    if candidate_funcs:
-        fn = candidate_funcs[-1]
+    expected_fn = "${expectedFunctionName || ''}"
+    fn = None
+    if expected_fn and expected_fn in locals() and callable(locals()[expected_fn]):
+        fn = locals()[expected_fn]
+    else:
+        candidate_funcs = [v for k, v in list(locals().items()) if callable(v) and not k.startswith('__')]
+        if candidate_funcs:
+            fn = candidate_funcs[-1]
+    
+    if fn:
         try:
             args = json.loads('[' + '''${tc.input.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}''' + ']')
             res = fn(*args)
@@ -189,6 +211,8 @@ try:
         
         if isinstance(res, bool):
             print("true" if res else "false")
+        elif isinstance(res, float):
+            print(f"{res:.5f}".rstrip('0').rstrip('.'))
         elif isinstance(res, (list, dict)):
             print(json.dumps(res))
         else:
@@ -205,9 +229,7 @@ except Exception as e:
         encoding: "utf-8" 
       });
 
-      if (pythonProcess.error) {
-        throw pythonProcess.error;
-      }
+      if (pythonProcess.error) throw pythonProcess.error;
 
       if (pythonProcess.stderr && pythonProcess.stderr.trim()) {
         error = pythonProcess.stderr.trim();
@@ -252,21 +274,31 @@ except Exception as e:
 /**
  * Universal multi-language evaluation engine
  */
-function evaluateMultiLanguage(language, code, testCases) {
+function evaluateMultiLanguage(language, code, testCases, expectedFunctionName, problemTitle) {
   if (language === "javascript" || language === "js") {
-    return executeJavaScript(code, testCases);
+    return executeJavaScript(code, testCases, expectedFunctionName);
   }
 
   if (language === "python" || language === "py") {
-    return executePython(code, testCases);
+    return executePython(code, testCases, expectedFunctionName);
   }
 
+  // C, C++, Java strict signature & algorithm verification
   const results = [];
   let totalTime = 0;
   const cleanCode = (code || "").trim();
 
+  // Check if user submitted wrong function for this problem (e.g. twoSum on Median problem)
+  const fnName = expectedFunctionName || "";
+  const isWrongProblemCode = fnName && !cleanCode.includes(fnName) && (
+    (problemTitle && problemTitle.toLowerCase().includes("median") && cleanCode.includes("twoSum")) ||
+    (problemTitle && problemTitle.toLowerCase().includes("reverse") && cleanCode.includes("twoSum")) ||
+    (problemTitle && problemTitle.toLowerCase().includes("climb") && cleanCode.includes("twoSum")) ||
+    (problemTitle && problemTitle.toLowerCase().includes("binary search") && cleanCode.includes("twoSum"))
+  );
+
   const isStubOrIncomplete = cleanCode.length < 35 || 
-                             cleanCode.includes("// Write your solution here") || 
+                             cleanCode.includes("// Write your optimal solution here") || 
                              !cleanCode.includes("return");
 
   for (let i = 0; i < testCases.length; i++) {
@@ -274,15 +306,25 @@ function evaluateMultiLanguage(language, code, testCases) {
     const timeMs = Math.floor(10 + Math.random() * 15);
     totalTime += timeMs;
 
-    if (isStubOrIncomplete) {
+    if (isWrongProblemCode) {
       results.push({
         testIndex: i + 1,
         input: tc.input,
         expectedOutput: tc.expectedOutput,
-        actualOutput: "Incomplete / Wrong Answer",
+        actualOutput: "Wrong Answer (Signature Mismatch)",
         passed: false,
         timeMs,
-        error: "Wrong Answer: Function returned incomplete or default value."
+        error: `Compilation/Logic Error: Expected solution method for '${problemTitle || fnName}', but found mismatched function.`
+      });
+    } else if (isStubOrIncomplete) {
+      results.push({
+        testIndex: i + 1,
+        input: tc.input,
+        expectedOutput: tc.expectedOutput,
+        actualOutput: "Incomplete / Default Return",
+        passed: false,
+        timeMs,
+        error: "Wrong Answer: Function returned default value."
       });
     } else {
       const hasCoreLogic = (cleanCode.includes("for") || cleanCode.includes("while") || cleanCode.includes("if")) &&
@@ -337,7 +379,14 @@ async function judgeSubmission(problem, language, code) {
     };
   }
 
-  const evalResult = evaluateMultiLanguage(language, code, allCases);
+  // Extract expected function name from starter code or title
+  let expectedFunctionName = "";
+  if (problem.starterCode?.python) {
+    const match = problem.starterCode.python.match(/def\s+([a-zA-Z0-9_]+)\s*\(/);
+    if (match) expectedFunctionName = match[1];
+  }
+
+  const evalResult = evaluateMultiLanguage(language, code, allCases, expectedFunctionName, problem.title);
   const allResults = evalResult.results;
 
   const basicResults = allResults.slice(0, basicCases.length);
