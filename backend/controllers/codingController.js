@@ -85,7 +85,9 @@ const runTestCases = async (req, res) => {
     if (!problem) return res.status(404).json({ message: "Problem not found" });
 
     const basicCases = problem.basicTestCases || [];
-    const evalResult = evaluateMultiLanguage(language || "javascript", code, basicCases);
+    const { getExpectedFunctionName } = require("../services/judgeEngine");
+    const expectedFunctionName = getExpectedFunctionName(problem);
+    const evalResult = evaluateMultiLanguage(language || "javascript", code, basicCases, expectedFunctionName, problem.title);
 
     res.json({
       success: true,

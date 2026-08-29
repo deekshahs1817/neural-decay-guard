@@ -2,6 +2,41 @@ const vm = require("vm");
 const { spawnSync } = require("child_process");
 
 /**
+ * Extracts expected function name from problem starter code or title
+ */
+function getExpectedFunctionName(problem) {
+  if (!problem) return "";
+  if (problem.starterCode?.python) {
+    const match = problem.starterCode.python.match(/def\s+([a-zA-Z0-9_]+)\s*\(/);
+    if (match && match[1] !== "solution") return match[1];
+  }
+  if (problem.starterCode?.cpp) {
+    const match = problem.starterCode.cpp.match(/(?:int|bool|void|double|string|vector<[\w\s<>]+>)\s+([a-zA-Z0-9_]+)\s*\(/);
+    if (match) return match[1];
+  }
+  if (problem.starterCode?.javascript) {
+    const match = problem.starterCode.javascript.match(/function\s+([a-zA-Z0-9_]+)\s*\(/);
+    if (match && match[1] !== "solution") return match[1];
+  }
+
+  // Fallback heuristics from title
+  const title = (problem.title || "").toLowerCase();
+  if (title.includes("two sum")) return "twoSum";
+  if (title.includes("parentheses")) return "isValid";
+  if (title.includes("median")) return "findMedianSortedArrays";
+  if (title.includes("reverse linked list") || title.includes("reverse")) return "reverseList";
+  if (title.includes("binary search") || title.includes("search")) return "search";
+  if (title.includes("climbing stairs")) return "climbStairs";
+  if (title.includes("max subarray") || title.includes("subarray sum")) return "maxSubArray";
+  if (title.includes("longest substring")) return "lengthOfLongestSubstring";
+  if (title.includes("trapping rain water") || title.includes("trap")) return "trap";
+  if (title.includes("coin change")) return "coinChange";
+  if (title.includes("stock") || title.includes("profit")) return "maxProfit";
+
+  return "";
+}
+
+/**
  * Formats any JS output to clean string (preserves arrays as JSON [0,1])
  */
 function formatOutput(val) {
@@ -68,7 +103,7 @@ function validateLanguageSyntax(language, code) {
         error: "Compilation Error (javac 17): Incompatible syntax. Detected C++ constructs ('vector<...>', 'public:', '#include') inside Java buffer."
       };
     }
-    if (clean.includes("def ") || clean.includes("elif ") || clean.includes("print(") && !clean.includes("System.out")) {
+    if (clean.includes("def ") || clean.includes("elif ") || (clean.includes("print(") && !clean.includes("System.out"))) {
       return {
         valid: false,
         error: "Compilation Error (javac 17): Incompatible syntax. Detected Python constructs in Java buffer."
@@ -142,9 +177,7 @@ function transpileCppOrJavaToJs(code, functionName) {
   js = js.replace(/static\s+/g, "");
 
   // 3. Transform variable declarations
-  // vector<int> st; -> let st = [];
   js = js.replace(/vector\s*<\s*[\w\<\>\s]+\s*>\s+(\w+)\s*;/g, "let $1 = [];");
-  // unordered_map<...> mp; -> let mp = {};
   js = js.replace(/unordered_map\s*<\s*[\w\s,]+\s*>\s+(\w+)\s*;/g, "let $1 = {};");
   js = js.replace(/map\s*<\s*[\w\s,]+\s*>\s+(\w+)\s*;/g, "let $1 = {};");
   js = js.replace(/Map\s*<\s*[\w\s,]+\s*>\s+(\w+)\s*=\s*new\s+HashMap\s*<.*?>\(\);/g, "let $1 = {};");
@@ -178,7 +211,6 @@ function transpileCppOrJavaToJs(code, functionName) {
   js = js.replace(/INT_MIN/g, "-Infinity");
 
   // 6. Map lookup replacement
-  // mp.find(key) != mp.end() -> key in mp
   js = js.replace(/(\w+)\.find\(([^)]+)\)\s*!=\s*\1\.end\(\)/g, "($2 in $1)");
   js = js.replace(/(\w+)\.containsKey\(([^)]+)\)/g, "($2 in $1)");
 
@@ -186,17 +218,27 @@ function transpileCppOrJavaToJs(code, functionName) {
   js = js.replace(/return\s*\{([^{};]*)\}\s*;/g, "return [$1];");
 
   // 8. Transform function signature
-  // e.g. bool isValid(string s) { -> function isValid(s) {
-  const funcRegex = new RegExp(`(?:[\\w<>\\[\\]*&]+\\s+)?${functionName}\\s*\\(([^)]*)\\)\\s*\\{`, "g");
-  js = js.replace(funcRegex, (match, args) => {
-    // Clean parameter types e.g. "vector<int>& nums, int target" -> "nums, target"
-    const cleanedArgs = args
-      .split(",")
-      .map(arg => arg.trim().split(/\s+/).pop().replace(/[&*]/g, ""))
-      .filter(Boolean)
-      .join(", ");
-    return `function ${functionName}(${cleanedArgs}) {`;
-  });
+  if (functionName) {
+    const specificRegex = new RegExp(`(?:[\\w<>\\[\\]*&]+\\s+)?${functionName}\\s*\\(([^)]*)\\)\\s*\\{`, "g");
+    js = js.replace(specificRegex, (match, args) => {
+      const cleanedArgs = args
+        .split(",")
+        .map(arg => arg.trim().split(/\s+/).pop().replace(/[&*]/g, ""))
+        .filter(Boolean)
+        .join(", ");
+      return `function ${functionName}(${cleanedArgs}) {`;
+    });
+  } else {
+    // General method signature replacement
+    js = js.replace(/(?:(?:int|bool|void|double|string|vector<[\w\s<>]+>|ListNode\*|TreeNode\*|int\[\]|String)\s+)+([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*\{/g, (match, fn, args) => {
+      const cleanedArgs = args
+        .split(",")
+        .map(arg => arg.trim().split(/\s+/).pop().replace(/[&*]/g, ""))
+        .filter(Boolean)
+        .join(", ");
+      return `function ${fn}(${cleanedArgs}) {`;
+    });
+  }
 
   // 9. Remove trailing closing brace from class
   js = js.trim().replace(/\}\s*;?\s*$/g, "");
@@ -237,7 +279,19 @@ function executeJavaScript(code, testCases, expectedFunctionName) {
           if (expectedName && typeof eval(expectedName) === 'function') {
             targetFunc = eval(expectedName);
           } else {
-            userResult = "Compilation Error: Function '" + expectedName + "' is not defined in user code.";
+            // Find any defined function
+            const funcNames = ['solution', 'solve', 'twoSum', 'maxSubArray', 'lengthOfLongestSubstring', 
+                               'reverseList', 'isValid', 'merge', 'search', 'levelOrder', 'coinChange', 
+                               'longestCommonSubsequence', 'trap', 'minDistance', 'canJump', 'main', 'findMedianSortedArrays'];
+            
+            for (const fn of funcNames) {
+              try {
+                if (typeof eval(fn) === 'function') {
+                  targetFunc = eval(fn);
+                  break;
+                }
+              } catch(e) {}
+            }
           }
 
           if (targetFunc) {
@@ -248,6 +302,8 @@ function executeJavaScript(code, testCases, expectedFunctionName) {
               parsedArgs = [input];
             }
             userResult = targetFunc(...parsedArgs);
+          } else {
+            userResult = "Compilation Error: Function not found in submission.";
           }
         } catch(err) {
           userResult = "Runtime Error: " + err.message;
@@ -320,8 +376,15 @@ ${code}
 
 try:
     expected_fn = "${expectedFunctionName || ''}"
+    fn = None
     if expected_fn and expected_fn in locals() and callable(locals()[expected_fn]):
         fn = locals()[expected_fn]
+    else:
+        candidate_funcs = [v for k, v in list(locals().items()) if callable(v) and not k.startswith('__')]
+        if candidate_funcs:
+            fn = candidate_funcs[-1]
+
+    if fn:
         try:
             args = json.loads('[' + '''${tc.input.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}''' + ']')
             res = fn(*args)
@@ -337,7 +400,7 @@ try:
         else:
             print(res)
     else:
-        print("COMPILATION_ERROR: Function '" + expected_fn + "' is not defined.")
+        print("COMPILATION_ERROR: Function not defined.")
 except Exception as e:
     print(f"Error: {e}")
 `;
@@ -417,8 +480,7 @@ function evaluateMultiLanguage(language, code, testCases, expectedFunctionName, 
   }
 
   // Step 2: Strict Function Signature Verification
-  const hasRequiredSignature = cleanCode.includes(reqFn);
-  if (reqFn && !hasRequiredSignature) {
+  if (reqFn && !cleanCode.includes(reqFn)) {
     const errorMsg = `Compilation Error: Undefined reference to method '${reqFn}'. Expected solution method for '${problemTitle || reqFn}'.`;
     return {
       results: testCases.map((tc, idx) => ({
@@ -497,19 +559,7 @@ async function judgeSubmission(problem, language, code) {
     };
   }
 
-  // Extract expected function name from starter code or title
-  let expectedFunctionName = "";
-  if (problem.starterCode?.python) {
-    const match = problem.starterCode.python.match(/def\s+([a-zA-Z0-9_]+)\s*\(/);
-    if (match) expectedFunctionName = match[1];
-  } else if (problem.starterCode?.javascript) {
-    const match = problem.starterCode.javascript.match(/function\s+([a-zA-Z0-9_]+)\s*\(/);
-    if (match) expectedFunctionName = match[1];
-  } else if (problem.starterCode?.cpp) {
-    const match = problem.starterCode.cpp.match(/(?:int|bool|void|double|string|vector<[\w\s<>]+>)\s+([a-zA-Z0-9_]+)\s*\(/);
-    if (match) expectedFunctionName = match[1];
-  }
-
+  const expectedFunctionName = getExpectedFunctionName(problem);
   const evalResult = evaluateMultiLanguage(language, code, allCases, expectedFunctionName, problem.title);
   const allResults = evalResult.results;
 
@@ -562,6 +612,7 @@ module.exports = {
   evaluateMultiLanguage,
   validateLanguageSyntax,
   transpileCppOrJavaToJs,
+  getExpectedFunctionName,
   normalizeOutput,
   formatOutput
 };
