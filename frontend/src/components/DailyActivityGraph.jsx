@@ -196,23 +196,23 @@ export default function DailyActivityGraph({ dailyActivityMap = {}, dailyBreakdo
                     className="flex-1 flex flex-col items-center gap-2 group cursor-pointer h-full justify-end"
                   >
                     {/* Top Value Label */}
-                    <span className={`text-[10px] font-mono font-black transition-opacity ${day.value > 0 || isHovered ? "opacity-100 text-[var(--accent-primary)]" : "opacity-0"}`}>
+                    <span className={`text-[10px] font-mono font-black transition-opacity ${day.value > 0 || isHovered ? "opacity-100 text-cyan-400" : "opacity-0"}`}>
                       {day.value}
                     </span>
 
                     {/* Bar Cylinder */}
-                    <div className="w-full max-w-[32px] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-t-xl h-full flex items-end p-0.5 transition-all group-hover:border-[var(--accent-primary)] overflow-hidden">
+                    <div className="w-full max-w-[32px] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-t-xl h-full flex items-end p-0.5 transition-all group-hover:border-cyan-400 overflow-hidden">
                       <div
                         className={`w-full rounded-t-lg transition-all duration-500 ${
                           isSelected
-                            ? "bg-gradient-to-t from-emerald-500 to-cyan-400 shadow-md ring-2 ring-emerald-500"
+                            ? "bg-gradient-to-t from-emerald-500 via-teal-400 to-cyan-400 shadow-xl ring-2 ring-emerald-400"
                             : isHovered
-                            ? "bg-gradient-to-t from-cyan-500 to-[var(--accent-primary)]"
+                            ? "bg-gradient-to-t from-cyan-400 via-indigo-500 to-purple-400 shadow-md"
                             : day.isToday
-                            ? "bg-gradient-to-t from-[var(--accent-primary)] via-cyan-400 to-emerald-400"
+                            ? "bg-gradient-to-t from-indigo-600 via-cyan-400 to-emerald-400 shadow-lg ring-1 ring-cyan-400/40"
                             : day.value > 0
-                            ? "bg-gradient-to-t from-[var(--accent-primary)]/80 to-[var(--accent-glow-strong)]"
-                            : "bg-slate-800/40"
+                            ? "bg-gradient-to-t from-indigo-600 via-teal-500 to-cyan-400 shadow-md"
+                            : "bg-slate-800/30"
                         }`}
                         style={{ height: `${heightPercent}%` }}
                       />
