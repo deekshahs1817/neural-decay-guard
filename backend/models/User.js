@@ -130,6 +130,18 @@ const userSchema = new mongoose.Schema({
     type: Map,
     of: Number,
     default: {}
+  },
+
+  // Daily Activity & Breakdown Telemetry Maps
+  dailyActivityMap: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
+  dailyBreakdownMap: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: {}
   }
   
 }, { timestamps: true });
