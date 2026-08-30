@@ -126,14 +126,39 @@ exports.getUserStats = async (req, res) => {
       : 0;
     const retentionScore = Math.max(40, Math.round(100 * Math.exp(-0.05 * daysSinceActive)));
 
+    // Calculate continuous consecutive active streak from active dates
+    let calculatedStreak = 0;
+    if (activeDates.length > 0) {
+      const todayDateStr = clientTodayStr;
+      const yesterday = new Date(new Date(todayDateStr).getTime() - 86400000).toISOString().split("T")[0];
+      
+      let checkDate = (dailyActivityMap[todayDateStr] > 0) 
+        ? new Date(todayDateStr) 
+        : ((dailyActivityMap[yesterday] > 0) ? new Date(yesterday) : null);
+
+      if (checkDate) {
+        while (true) {
+          const dStr = checkDate.toISOString().split("T")[0];
+          if (dailyActivityMap[dStr] > 0) {
+            calculatedStreak += 1;
+            checkDate = new Date(checkDate.getTime() - 86400000);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    const currentStreak = Math.max(user.quizStreak || 0, user.streak || 0, calculatedStreak);
+
     res.json({
       name: user.name,
       email: user.email,
       totalQuiz,
       accuracy,
-      streak: user.quizStreak || 0,
-      codingStreak: user.quizStreak || 0,
-      quizStreak: user.quizStreak || 0,
+      streak: currentStreak,
+      codingStreak: currentStreak,
+      quizStreak: currentStreak,
       solvedCodingCount,
       xp: user.xp || 0,
       level: user.level || 1,
