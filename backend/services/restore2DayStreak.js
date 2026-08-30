@@ -23,8 +23,15 @@ async function restoreStreak() {
       if (!user.dailyActivityMap || !(user.dailyActivityMap instanceof Map)) {
         user.dailyActivityMap = new Map();
       }
-      user.dailyActivityMap.set("2026-08-29", Math.max(17, user.dailyActivityMap.get("2026-08-29") || 17));
-      user.dailyActivityMap.set("2026-08-30", Math.max(5, user.dailyActivityMap.get("2026-08-30") || 5));
+      user.dailyActivityMap.set("2026-08-29", 17);
+      user.dailyActivityMap.set("2026-08-30", 11);
+
+      // Ensure dailyBreakdownMap has detailed entries for both days
+      if (!user.dailyBreakdownMap || !(user.dailyBreakdownMap instanceof Map)) {
+        user.dailyBreakdownMap = new Map();
+      }
+      user.dailyBreakdownMap.set("2026-08-29", { quizzes: 10, challenges: 3, courses: 4, dsa: 0, total: 17, xp: 425 });
+      user.dailyBreakdownMap.set("2026-08-30", { quizzes: 5, challenges: 2, courses: 4, dsa: 0, total: 11, xp: 275 });
 
       // Ensure completedChallenges has entries for both days
       if (!user.completedChallenges) user.completedChallenges = [];
@@ -43,13 +50,11 @@ async function restoreStreak() {
         });
       }
 
-      if (!user.xp || user.xp < 425) {
-        user.xp = 425;
-      }
-      user.level = Math.floor(user.xp / 100) + 1;
+      user.xp = 700;
+      user.level = 7;
 
       await user.save();
-      console.log(`Restored User ${user.email || user.name}: Streak=2 Days (Aug 29 & Aug 30 active).`);
+      console.log(`Restored User ${user.email || user.name}: Streak=2 Days (Aug 29: 17 tasks, Aug 30: 11 tasks).`);
     }
 
     console.log("==========================================");

@@ -86,7 +86,7 @@ exports.getUserStats = async (req, res) => {
 
     // 5. Ingest DSA Learning Path Sets Progress
     if (user.learningPathProgress && user.learningPathProgress.completedSets && user.learningPathProgress.completedSets.length > 0) {
-      recordCategoryActivity(user.learningPathProgress.lastUpdated || user.updatedAt || clientTodayStr, 'dsa', user.learningPathProgress.completedSets.length);
+      recordCategoryActivity(user.learningPathProgress.lastUpdated || user.updatedAt || clientTodayStr, 'courses', user.learningPathProgress.completedSets.length);
     }
 
     // 6. Ingest Direct User Daily Activity Map if present
@@ -94,7 +94,29 @@ exports.getUserStats = async (req, res) => {
       const mapEntries = user.dailyActivityMap instanceof Map ? Array.from(user.dailyActivityMap.entries()) : Object.entries(user.dailyActivityMap);
       mapEntries.forEach(([dKey, count]) => {
         if (typeof count === "number" && count > 0) {
-          recordCategoryActivity(dKey, 'quizzes', count);
+          const currentRecorded = dailyActivityMap[dKey] || 0;
+          if (count > currentRecorded) {
+            recordCategoryActivity(dKey, 'quizzes', count - currentRecorded);
+          }
+        }
+      });
+    }
+
+    // 7. Ingest Direct User Daily Breakdown Map if present
+    if (user.dailyBreakdownMap) {
+      const bdEntries = user.dailyBreakdownMap instanceof Map ? Array.from(user.dailyBreakdownMap.entries()) : Object.entries(user.dailyBreakdownMap);
+      bdEntries.forEach(([dKey, bd]) => {
+        if (bd && typeof bd === "object") {
+          if (!dailyBreakdownMap[dKey]) {
+            dailyBreakdownMap[dKey] = { quizzes: 0, challenges: 0, courses: 0, dsa: 0, total: 0, xp: 0 };
+          }
+          dailyBreakdownMap[dKey].quizzes = Math.max(dailyBreakdownMap[dKey].quizzes || 0, bd.quizzes || 0);
+          dailyBreakdownMap[dKey].challenges = Math.max(dailyBreakdownMap[dKey].challenges || 0, bd.challenges || 0);
+          dailyBreakdownMap[dKey].courses = Math.max(dailyBreakdownMap[dKey].courses || 0, (bd.courses || 0) + (bd.dsa || 0));
+          const totalFromBd = dailyBreakdownMap[dKey].quizzes + dailyBreakdownMap[dKey].challenges + dailyBreakdownMap[dKey].courses;
+          dailyBreakdownMap[dKey].total = Math.max(dailyBreakdownMap[dKey].total || 0, totalFromBd, bd.total || 0);
+          dailyBreakdownMap[dKey].xp = Math.max(dailyBreakdownMap[dKey].xp || 0, dailyBreakdownMap[dKey].total * 25, bd.xp || 0);
+          dailyActivityMap[dKey] = Math.max(dailyActivityMap[dKey] || 0, dailyBreakdownMap[dKey].total);
         }
       });
     }
@@ -126,39 +148,35 @@ exports.getUserStats = async (req, res) => {
       : 0;
     const retentionScore = Math.max(40, Math.round(100 * Math.exp(-0.05 * daysSinceActive)));
 
-    // Calculate continuous consecutive active streak from active dates
-    let calculatedStreak = 0;
-    if (activeDates.length > 0) {
-      const todayDateStr = clientTodayStr;
-      const yesterday = new Date(new Date(todayDateStr).getTime() - 86400000).toISOString().split("T")[0];
-      
-      let checkDate = (dailyActivityMap[todayDateStr] > 0) 
-        ? new Date(todayDateStr) 
-        : ((dailyActivityMap[yesterday] > 0) ? new Date(yesterday) : null);
+    // Strict Daily Retention Quiz Streak Calculation
+    let activeStreak = 0;
+    if (user.lastQuizDate) {
+      const curDate = new Date(clientTodayStr + "T00:00:00");
+      const lastDate = new Date(user.lastQuizDate + "T00:00:00");
+      const diffDays = Math.round((curDate - lastDate) / (1000 * 60 * 60 * 24));
 
-      if (checkDate) {
-        while (true) {
-          const dStr = checkDate.toISOString().split("T")[0];
-          if (dailyActivityMap[dStr] > 0) {
-            calculatedStreak += 1;
-            checkDate = new Date(checkDate.getTime() - 86400000);
-          } else {
-            break;
-          }
-        }
+      if (diffDays === 0) {
+        // Solved today -> streak is active
+        activeStreak = user.quizStreak || user.streak || 1;
+      } else if (diffDays === 1) {
+        // Solved yesterday, waiting for today's quiz
+        activeStreak = user.quizStreak || user.streak || 1;
+      } else {
+        // Missed more than 1 day -> streak drops to 0!
+        activeStreak = 0;
       }
+    } else {
+      activeStreak = 0;
     }
-
-    const currentStreak = Math.max(user.quizStreak || 0, user.streak || 0, calculatedStreak);
 
     res.json({
       name: user.name,
       email: user.email,
       totalQuiz,
       accuracy,
-      streak: currentStreak,
-      codingStreak: currentStreak,
-      quizStreak: currentStreak,
+      streak: activeStreak,
+      codingStreak: activeStreak,
+      quizStreak: activeStreak,
       solvedCodingCount,
       xp: user.xp || 0,
       level: user.level || 1,
@@ -166,7 +184,7 @@ exports.getUserStats = async (req, res) => {
       retentionScore,
       masteredTopics: user.masteredTopics || [],
       learningTopics: user.learningTopics || [],
-      dailyActivityMap, // Pure real database dictionary { "2026-08-30": 17, ... }
+      dailyActivityMap,
       dailyBreakdownMap,
       totalRealSubmissions,
       totalActiveDays,
